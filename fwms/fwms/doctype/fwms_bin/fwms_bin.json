@@ -1,0 +1,199 @@
+{
+ "actions": [],
+ "autoname": "field:barcode",
+ "creation": "2026-10-02 00:00:00.000000",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "barcode",
+  "zone",
+  "column_break_1",
+  "abc_class",
+  "is_pick_face",
+  "location_section",
+  "aisle",
+  "rack",
+  "level",
+  "column_break_2",
+  "capacity_qty",
+  "pick_face_section",
+  "primary_item",
+  "min_qty",
+  "max_qty",
+  "column_break_3",
+  "last_counted_on",
+  "last_count_variance",
+  "last_count_accuracy"
+ ],
+ "fields": [
+  {
+   "description": "Scannable bin location barcode e.g. BULK-A01-R02-B03",
+   "fieldname": "barcode",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Barcode",
+   "reqd": 1,
+   "unique": 1
+  },
+  {
+   "fieldname": "zone",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Zone",
+   "options": "FWMS Zone",
+   "reqd": 1
+  },
+  {
+   "fieldname": "column_break_1",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "abc_class",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "ABC Class",
+   "options": "A\nB\nC"
+  },
+  {
+   "default": "0",
+   "fieldname": "is_pick_face",
+   "fieldtype": "Check",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Is Pick Face"
+  },
+  {
+   "fieldname": "location_section",
+   "fieldtype": "Section Break",
+   "label": "Location"
+  },
+  {
+   "fieldname": "aisle",
+   "fieldtype": "Data",
+   "label": "Aisle"
+  },
+  {
+   "fieldname": "rack",
+   "fieldtype": "Data",
+   "label": "Rack"
+  },
+  {
+   "fieldname": "level",
+   "fieldtype": "Data",
+   "label": "Level"
+  },
+  {
+   "fieldname": "column_break_2",
+   "fieldtype": "Column Break"
+  },
+  {
+   "description": "Loose capacity hint for putaway suggestions",
+   "fieldname": "capacity_qty",
+   "fieldtype": "Float",
+   "label": "Capacity Qty"
+  },
+  {
+   "collapsible": 1,
+   "fieldname": "pick_face_section",
+   "fieldtype": "Section Break",
+   "label": "Pick Face / Counting"
+  },
+  {
+   "depends_on": "eval:doc.is_pick_face",
+   "description": "Item this pick face is slotted for",
+   "fieldname": "primary_item",
+   "fieldtype": "Link",
+   "label": "Primary Item",
+   "options": "Item"
+  },
+  {
+   "depends_on": "eval:doc.is_pick_face",
+   "description": "Replenishment triggers when pick-face stock of Primary Item falls below this",
+   "fieldname": "min_qty",
+   "fieldtype": "Float",
+   "label": "Min Qty"
+  },
+  {
+   "depends_on": "eval:doc.is_pick_face",
+   "fieldname": "max_qty",
+   "fieldtype": "Float",
+   "label": "Max Qty"
+  },
+  {
+   "fieldname": "column_break_3",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "last_counted_on",
+   "fieldtype": "Date",
+   "label": "Last Counted On"
+  },
+  {
+   "fieldname": "last_count_variance",
+   "fieldtype": "Float",
+   "label": "Last Count Variance"
+  },
+  {
+   "description": "0-100, 100 = perfect match",
+   "fieldname": "last_count_accuracy",
+   "fieldtype": "Percent",
+   "label": "Last Count Accuracy"
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2026-10-02 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "FWMS",
+ "name": "FWMS Bin",
+ "naming_rule": "By fieldname",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "read": 1,
+   "role": "FWMS Operator"
+  },
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "FWMS Supervisor",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "FWMS Inventory Control",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": [],
+ "track_changes": 1
+}

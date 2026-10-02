@@ -1,0 +1,274 @@
+{
+ "actions": [
+  {
+   "action": "fwms.tasks.assign_to_next_worker",
+   "action_type": "Server Action",
+   "group": "Assign",
+   "label": "Put Back in Queue"
+  }
+ ],
+ "autoname": "format:FW-TASK-{#####}",
+ "creation": "2026-10-02 00:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "task_type",
+  "status",
+  "priority",
+  "column_break_1",
+  "execution_channel",
+  "worker",
+  "details_section",
+  "item",
+  "qty",
+  "batch_no",
+  "column_break_2",
+  "lpn",
+  "from_bin",
+  "to_bin",
+  "links_section",
+  "wave",
+  "references",
+  "timing_section",
+  "assigned_at",
+  "started_at",
+  "column_break_3",
+  "completed_at",
+  "result_note",
+  "automation_section",
+  "automation_ack_status",
+  "automation_ack_at",
+  "column_break_4",
+  "automation_payload"
+ ],
+ "fields": [
+  {
+   "fieldname": "task_type",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Task Type",
+   "options": "Receive\nPutaway\nPick\nReplenish\nCount\nPack\nLoad",
+   "reqd": 1,
+   "set_only_once": 1
+  },
+  {
+   "default": "Open",
+   "fieldname": "status",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Status",
+   "options": "Open\nAssigned\nIn Progress\nComplete\nShort\nCancelled"
+  },
+  {
+   "default": "2-Normal",
+   "fieldname": "priority",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Priority",
+   "options": "1-High\n2-Normal\n3-Low"
+  },
+  {
+   "fieldname": "column_break_1",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "Manual RF",
+   "description": "Manual RF = handheld operator; Automated = AS/RS, conveyor, AGV (Phase 8)",
+   "fieldname": "execution_channel",
+   "fieldtype": "Select",
+   "label": "Execution Channel",
+   "options": "Manual RF\nAutomated"
+  },
+  {
+   "fieldname": "worker",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Worker",
+   "options": "FWMS Worker"
+  },
+  {
+   "fieldname": "details_section",
+   "fieldtype": "Section Break",
+   "label": "Details"
+  },
+  {
+   "fieldname": "item",
+   "fieldtype": "Link",
+   "label": "Item",
+   "options": "Item"
+  },
+  {
+   "fieldname": "qty",
+   "fieldtype": "Float",
+   "label": "Qty"
+  },
+  {
+   "fieldname": "batch_no",
+   "fieldtype": "Link",
+   "label": "Batch No",
+   "options": "Batch"
+  },
+  {
+   "fieldname": "column_break_2",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "lpn",
+   "fieldtype": "Link",
+   "label": "LPN",
+   "options": "FWMS LPN"
+  },
+  {
+   "fieldname": "from_bin",
+   "fieldtype": "Link",
+   "label": "From Bin",
+   "options": "FWMS Bin"
+  },
+  {
+   "fieldname": "to_bin",
+   "fieldtype": "Link",
+   "label": "To Bin",
+   "options": "FWMS Bin"
+  },
+  {
+   "collapsible": 1,
+   "fieldname": "links_section",
+   "fieldtype": "Section Break",
+   "label": "Links"
+  },
+  {
+   "fieldname": "wave",
+   "fieldtype": "Link",
+   "in_standard_filter": 1,
+   "label": "Wave",
+   "options": "FWMS Wave"
+  },
+  {
+   "fieldname": "references",
+   "fieldtype": "Table",
+   "label": "References",
+   "options": "FWMS Task Reference"
+  },
+  {
+   "collapsible": 1,
+   "fieldname": "timing_section",
+   "fieldtype": "Section Break",
+   "label": "Timing"
+  },
+  {
+   "fieldname": "assigned_at",
+   "fieldtype": "Datetime",
+   "label": "Assigned At",
+   "read_only": 1
+  },
+  {
+   "fieldname": "started_at",
+   "fieldtype": "Datetime",
+   "label": "Started At",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_3",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "completed_at",
+   "fieldtype": "Datetime",
+   "label": "Completed At",
+   "read_only": 1
+  },
+  {
+   "fieldname": "result_note",
+   "fieldtype": "Small Text",
+   "label": "Result Note"
+  },
+  {
+   "collapsible": 1,
+   "fieldname": "automation_section",
+   "fieldtype": "Section Break",
+   "label": "Automation (Phase 8)"
+  },
+  {
+   "default": "Not Required",
+   "description": "Ack state for automated equipment consuming this task",
+   "fieldname": "automation_ack_status",
+   "fieldtype": "Select",
+   "label": "Automation Ack Status",
+   "options": "Not Required\nPending\nAcked\nDone\nFailed",
+   "read_only": 1
+  },
+  {
+   "fieldname": "automation_ack_at",
+   "fieldtype": "Datetime",
+   "label": "Automation Ack At",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_4",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "automation_payload",
+   "fieldtype": "Code",
+   "label": "Automation Payload (JSON)",
+   "options": "JSON",
+   "read_only": 1
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2026-10-02 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "FWMS",
+ "name": "FWMS Task",
+ "naming_rule": "Expression",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "read": 1,
+   "role": "FWMS Operator",
+   "write": 1
+  },
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "FWMS Supervisor",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "FWMS Inventory Control",
+   "write": 1
+  }
+ ],
+ "sort_field": "priority",
+ "sort_order": "ASC",
+ "states": [],
+ "track_changes": 1
+}

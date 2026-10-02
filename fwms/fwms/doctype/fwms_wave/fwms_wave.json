@@ -1,0 +1,164 @@
+{
+ "actions": [
+  {
+   "action": "fwms.wave.release_wave_action",
+   "action_type": "Server Action",
+   "group": "Release",
+   "label": "Release Wave"
+  }
+ ],
+ "autoname": "format:FW-WAVE-{YYYY}-{#####}",
+ "creation": "2026-10-02 00:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "mode",
+  "status",
+  "column_break_1",
+  "cutoff_time",
+  "route",
+  "dock_door",
+  "orders_section",
+  "orders",
+  "documents_section",
+  "pick_list",
+  "column_break_2",
+  "released_at",
+  "closed_at"
+ ],
+ "fields": [
+  {
+   "default": "Continuous",
+   "fieldname": "mode",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Mode",
+   "options": "Continuous\nWaves",
+   "read_only": 1
+  },
+  {
+   "default": "Draft",
+   "fieldname": "status",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Status",
+   "options": "Draft\nReleased\nPicking Complete\nClosed\nCancelled",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_1",
+   "fieldtype": "Column Break"
+  },
+  {
+   "description": "Wave mode only: orders with this route batch together at cutoff",
+   "fieldname": "cutoff_time",
+   "fieldtype": "Datetime",
+   "label": "Cutoff Time"
+  },
+  {
+   "fieldname": "route",
+   "fieldtype": "Data",
+   "label": "Route"
+  },
+  {
+   "fieldname": "dock_door",
+   "fieldtype": "Link",
+   "label": "Dock Door",
+   "options": "FWMS Dock Door"
+  },
+  {
+   "fieldname": "orders_section",
+   "fieldtype": "Section Break",
+   "label": "Orders"
+  },
+  {
+   "fieldname": "orders",
+   "fieldtype": "Table",
+   "label": "Orders",
+   "options": "FWMS Wave Order",
+   "reqd": 1
+  },
+  {
+   "fieldname": "documents_section",
+   "fieldtype": "Section Break",
+   "label": "Documents"
+  },
+  {
+   "fieldname": "pick_list",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Pick List",
+   "options": "Pick List",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_2",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "released_at",
+   "fieldtype": "Datetime",
+   "label": "Released At",
+   "read_only": 1
+  },
+  {
+   "fieldname": "closed_at",
+   "fieldtype": "Datetime",
+   "label": "Closed At",
+   "read_only": 1
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "links": [
+  {
+   "group": "Activity",
+   "link_doctype": "FWMS Task",
+   "link_fieldname": "wave"
+  }
+ ],
+ "modified": "2026-10-02 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "FWMS",
+ "name": "FWMS Wave",
+ "naming_rule": "Expression",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "read": 1,
+   "role": "FWMS Operator"
+  },
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "FWMS Supervisor",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "read": 1,
+   "role": "FWMS Inventory Control"
+  }
+ ],
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": [],
+ "track_changes": 1
+}

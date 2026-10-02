@@ -1,0 +1,192 @@
+{
+ "actions": [],
+ "autoname": "field:barcode",
+ "creation": "2026-10-02 00:00:00.000000",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "barcode",
+  "lpn_type",
+  "status",
+  "column_break_1",
+  "zone",
+  "bin",
+  "parent_lpn",
+  "contents_section",
+  "items",
+  "source_section",
+  "source_doctype",
+  "source_name",
+  "column_break_2",
+  "sales_order",
+  "delivery_note",
+  "purchase_order"
+ ],
+ "fields": [
+  {
+   "description": "Scannable container barcode e.g. LPN-000123 / CART-0042",
+   "fieldname": "barcode",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Barcode",
+   "reqd": 1,
+   "unique": 1
+  },
+  {
+   "default": "Tote",
+   "fieldname": "lpn_type",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "LPN Type",
+   "options": "Tote\nCarton\nPallet\nCart"
+  },
+  {
+   "default": "Empty",
+   "fieldname": "status",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Status",
+   "options": "Empty\nReceiving\nIn Bin\nPicking\nPacked\nShipped\nClosed"
+  },
+  {
+   "fieldname": "column_break_1",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "zone",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Current Zone",
+   "options": "FWMS Zone"
+  },
+  {
+   "fieldname": "bin",
+   "fieldtype": "Link",
+   "in_standard_filter": 1,
+   "label": "Current Bin",
+   "options": "FWMS Bin"
+  },
+  {
+   "description": "Pallet or cart this container belongs to",
+   "fieldname": "parent_lpn",
+   "fieldtype": "Link",
+   "label": "Parent LPN",
+   "options": "FWMS LPN"
+  },
+  {
+   "fieldname": "contents_section",
+   "fieldtype": "Section Break",
+   "label": "Contents"
+  },
+  {
+   "fieldname": "items",
+   "fieldtype": "Table",
+   "label": "Items",
+   "options": "FWMS LPN Item"
+  },
+  {
+   "collapsible": 1,
+   "fieldname": "source_section",
+   "fieldtype": "Section Break",
+   "label": "Source"
+  },
+  {
+   "fieldname": "source_doctype",
+   "fieldtype": "Link",
+   "label": "Source DocType",
+   "options": "DocType"
+  },
+  {
+   "fieldname": "source_name",
+   "fieldtype": "Dynamic Link",
+   "label": "Source Name",
+   "options": "source_doctype"
+  },
+  {
+   "fieldname": "column_break_2",
+   "fieldtype": "Column Break"
+  },
+  {
+   "description": "Order a pick cart is fulfilling",
+   "fieldname": "sales_order",
+   "fieldtype": "Link",
+   "label": "Sales Order",
+   "options": "Sales Order"
+  },
+  {
+   "fieldname": "delivery_note",
+   "fieldtype": "Link",
+   "label": "Delivery Note",
+   "options": "Delivery Note"
+  },
+  {
+   "fieldname": "purchase_order",
+   "fieldtype": "Link",
+   "label": "Purchase Order",
+   "options": "Purchase Order"
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "links": [
+  {
+   "group": "Activity",
+   "link_doctype": "FWMS Task",
+   "link_fieldname": "lpn"
+  },
+  {
+   "group": "Activity",
+   "link_doctype": "FWMS Event Log",
+   "link_fieldname": "lpn"
+  }
+ ],
+ "modified": "2026-10-02 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "FWMS",
+ "name": "FWMS LPN",
+ "naming_rule": "By fieldname",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "read": 1,
+   "role": "FWMS Operator",
+   "write": 1
+  },
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "FWMS Supervisor",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "read": 1,
+   "role": "FWMS Inventory Control"
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": [],
+ "track_changes": 1
+}

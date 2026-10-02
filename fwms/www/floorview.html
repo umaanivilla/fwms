@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<title>FWMS Floor View</title>
+	<link rel="stylesheet" href="/assets/fwms/floorview/css/floorview.css">
+</head>
+<body>
+	<div id="fv">
+		<header class="fv-head">
+			<div class="brand">
+				<div class="logo">FWMS</div>
+				<div class="shift">
+					<div id="clock" class="clock">--:--</div>
+					<div id="shiftname" class="sub">shift</div>
+				</div>
+			</div>
+			<div class="kpis" id="kpis"></div>
+			<div class="controls">
+				<div id="release-mode" class="chip">Release: —</div>
+				<div id="sim-btn" class="chip action hidden" onclick="FV.simTick()">⚡ Simulate</div>
+				<div id="tour-btn" class="chip action" onclick="FV.tour.start()">Tour (11 steps)</div>
+			</div>
+		</header>
+		<main class="fv-main">
+			<section class="floor">
+				<h3>Floor</h3>
+				<div id="zone-map" class="zone-map"></div>
+				<h3>Dock doors</h3>
+				<div id="docks" class="docks"></div>
+				<h3>Workers on floor <span id="worker-count" class="sub"></span></h3>
+				<div id="workers" class="workers"></div>
+			</section>
+			<section class="stream">
+				<div class="stream-head">
+					<h3>Live events</h3>
+					<div id="label-toggle" class="labels">
+						<span class="sub">Labels:</span>
+						<button data-mode="all" class="on">All</button>
+						<button data-mode="scans">Scans</button>
+						<button data-mode="off">Off</button>
+					</div>
+				</div>
+				<div id="filters" class="filters"></div>
+				<div id="events" class="events"></div>
+			</section>
+		</main>
+	</div>
+	<div id="tour-overlay" class="tour-overlay hidden">
+		<div class="tour-card">
+			<div class="tour-step"><span id="tour-n">1</span> / 11</div>
+			<h2 id="tour-title"></h2>
+			<p id="tour-body"></p>
+			<div class="tour-nav">
+				<button onclick="FV.tour.prev()">Previous</button>
+				<button class="primary" onclick="FV.tour.next()">Next step</button>
+				<button class="ghost" onclick="FV.tour.stop()">Exit tour</button>
+			</div>
+		</div>
+	</div>
+	<script src="/assets/fwms/floorview/js/floorview.js"></script>
+</body>
+</html>

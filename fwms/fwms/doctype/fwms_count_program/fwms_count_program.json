@@ -1,0 +1,157 @@
+{
+ "actions": [],
+ "autoname": "field:program_name",
+ "creation": "2026-10-02 00:00:00.000000",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "program_name",
+  "enabled",
+  "column_break_1",
+  "abc_class",
+  "interval_days",
+  "count_method",
+  "filters_section",
+  "zone",
+  "auto_generate",
+  "column_break_2",
+  "last_generated_on",
+  "tasks_generated"
+ ],
+ "fields": [
+  {
+   "fieldname": "program_name",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Program Name",
+   "reqd": 1,
+   "unique": 1
+  },
+  {
+   "default": "1",
+   "fieldname": "enabled",
+   "fieldtype": "Check",
+   "in_list_view": 1,
+   "label": "Enabled"
+  },
+  {
+   "fieldname": "column_break_1",
+   "fieldtype": "Column Break"
+  },
+  {
+   "description": "Count bins whose FWMS Bin ABC class matches",
+   "fieldname": "abc_class",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "ABC Class",
+   "options": "A\nB\nC",
+   "reqd": 1
+  },
+  {
+   "default": "30",
+   "description": "Days between counts for this class",
+   "fieldname": "interval_days",
+   "fieldtype": "Int",
+   "in_list_view": 1,
+   "label": "Interval (days)",
+   "reqd": 1
+  },
+  {
+   "default": "Blind",
+   "description": "Blind hides expected quantities from the counter",
+   "fieldname": "count_method",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Count Method",
+   "options": "Blind\nExpected"
+  },
+  {
+   "fieldname": "filters_section",
+   "fieldtype": "Section Break",
+   "label": "Scope"
+  },
+  {
+   "description": "Restrict to one zone (blank = all zones)",
+   "fieldname": "zone",
+   "fieldtype": "Link",
+   "label": "Zone",
+   "options": "FWMS Zone"
+  },
+  {
+   "default": "1",
+   "description": "Daily scheduler creates Count tasks automatically",
+   "fieldname": "auto_generate",
+   "fieldtype": "Check",
+   "label": "Auto Generate"
+  },
+  {
+   "fieldname": "column_break_2",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "last_generated_on",
+   "fieldtype": "Date",
+   "label": "Last Generated On",
+   "read_only": 1
+  },
+  {
+   "fieldname": "tasks_generated",
+   "fieldtype": "Int",
+   "label": "Tasks Generated",
+   "read_only": 1
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2026-10-02 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "FWMS",
+ "name": "FWMS Count Program",
+ "naming_rule": "By fieldname",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "read": 1,
+   "role": "FWMS Operator"
+  },
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "FWMS Supervisor",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "FWMS Inventory Control",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": [],
+ "track_changes": 1
+}

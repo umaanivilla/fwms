@@ -1,0 +1,139 @@
+{
+ "actions": [],
+ "autoname": "hash",
+ "creation": "2026-10-02 00:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "snapshot_time",
+  "fulfilment_section",
+  "orders_shipped_today",
+  "open_orders",
+  "avg_cycle_time_minutes",
+  "column_break_1",
+  "lines_picked_per_hour",
+  "rf_scans_last_hour",
+  "pack_queue",
+  "dock_doors_in_use",
+  "counting_section",
+  "count_accuracy_pct",
+  "column_break_2",
+  "counts_completed_shift"
+ ],
+ "fields": [
+  {
+   "fieldname": "snapshot_time",
+   "fieldtype": "Datetime",
+   "in_list_view": 1,
+   "label": "Snapshot Time"
+  },
+  {
+   "collapsible": 1,
+   "fieldname": "fulfilment_section",
+   "fieldtype": "Section Break",
+   "label": "Fulfilment"
+  },
+  {
+   "fieldname": "orders_shipped_today",
+   "fieldtype": "Int",
+   "label": "Orders Shipped Today"
+  },
+  {
+   "fieldname": "open_orders",
+   "fieldtype": "Int",
+   "label": "Open Orders"
+  },
+  {
+   "description": "Release-to-trailer, last 30 shipped orders",
+   "fieldname": "avg_cycle_time_minutes",
+   "fieldtype": "Float",
+   "label": "Avg Cycle Time (min)"
+  },
+  {
+   "fieldname": "column_break_1",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "lines_picked_per_hour",
+   "fieldtype": "Float",
+   "label": "Lines Picked / hr"
+  },
+  {
+   "fieldname": "rf_scans_last_hour",
+   "fieldtype": "Int",
+   "label": "RF Scans (last hr)"
+  },
+  {
+   "description": "Cartons awaiting packing",
+   "fieldname": "pack_queue",
+   "fieldtype": "Int",
+   "label": "Pack Queue"
+  },
+  {
+   "fieldname": "dock_doors_in_use",
+   "fieldtype": "Int",
+   "label": "Dock Doors In Use"
+  },
+  {
+   "collapsible": 1,
+   "fieldname": "counting_section",
+   "fieldtype": "Section Break",
+   "label": "Counting"
+  },
+  {
+   "fieldname": "count_accuracy_pct",
+   "fieldtype": "Percent",
+   "label": "Count Accuracy %"
+  },
+  {
+   "fieldname": "column_break_2",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "counts_completed_shift",
+   "fieldtype": "Int",
+   "label": "Counts Completed (shift)"
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2026-10-02 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "FWMS",
+ "name": "FWMS KPI Snapshot",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "read": 1,
+   "role": "FWMS Operator"
+  },
+  {
+   "create": 1,
+   "delete": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "FWMS Supervisor",
+   "write": 1
+  },
+  {
+   "read": 1,
+   "role": "FWMS Inventory Control"
+  }
+ ],
+ "sort_field": "snapshot_time",
+ "sort_order": "DESC",
+ "states": []
+}

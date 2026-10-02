@@ -85,8 +85,7 @@ app_license = "mit"
 # Installation
 # ------------
 
-# before_install = "fwms.install.before_install"
-# after_install = "fwms.install.after_install"
+after_migrate = "fwms.setup.install.after_migrate"
 
 # Uninstallation
 # ------------
@@ -144,39 +143,55 @@ app_license = "mit"
 # ---------------
 # Hook on document methods and events
 
-# doc_events = {
-# 	"*": {
-# 		"on_update": "method",
-# 		"on_cancel": "method",
-# 		"on_trash": "method"
-# 	}
-# }
+doc_events = {
+	"Sales Order": {
+		"on_submit": "fwms.events.on_sales_order_submit",
+	},
+	"Purchase Receipt": {
+		"on_submit": "fwms.events.on_purchase_receipt_submit",
+	},
+	"Stock Entry": {
+		"on_submit": "fwms.events.on_stock_entry_submit",
+	},
+	"Pick List": {
+		"on_submit": "fwms.events.on_pick_list_submit",
+	},
+	"Delivery Note": {
+		"on_submit": "fwms.events.on_delivery_note_submit",
+	},
+	"Packing Slip": {
+		"on_submit": "fwms.events.on_packing_slip_submit",
+	},
+	"Stock Reconciliation": {
+		"on_submit": "fwms.events.on_stock_reconciliation_submit",
+	},
+	"Quality Inspection": {
+		"on_update": "fwms.events.on_quality_inspection_update",
+	},
+}
 
 # Scheduled Tasks
 # ---------------
 
-# scheduler_events = {
-# 	"all": [
-# 		"fwms.tasks.all"
-# 	],
-# 	"daily": [
-# 		"fwms.tasks.daily"
-# 	],
-# 	"hourly": [
-# 		"fwms.tasks.hourly"
-# 	],
-# 	"weekly": [
-# 		"fwms.tasks.weekly"
-# 	],
-# 	"monthly": [
-# 		"fwms.tasks.monthly"
-# 	],
-# }
+scheduler_events = {
+	"cron": {
+		"*/5 * * * *": [
+			"fwms.scheduler_jobs.snapshot_kpis",
+		],
+	},
+	"daily": [
+		"fwms.scheduler_jobs.generate_count_tasks",
+		"fwms.wave.release_due_waves",
+	],
+	"hourly": [
+		"fwms.scheduler_jobs.check_replenishment",
+	],
+}
 
 # Testing
 # -------
 
-# before_tests = "fwms.install.before_tests"
+before_tests = "fwms.tests.setup.before_tests"
 
 # Extend DocType Class
 # ------------------------------

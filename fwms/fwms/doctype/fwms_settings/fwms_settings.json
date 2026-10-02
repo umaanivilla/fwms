@@ -1,0 +1,177 @@
+{
+ "actions": [],
+ "creation": "2026-10-02 00:00:00.000000",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "company_section",
+  "company",
+  "column_break_1",
+  "site_abbreviation",
+  "operations_section",
+  "release_mode",
+  "pick_strategy",
+  "column_break_2",
+  "simulation_mode",
+  "count_section",
+  "default_count_method",
+  "integrations_section",
+  "enable_carrier_gateway",
+  "enable_customs_gateway",
+  "enable_automation_bridge",
+  "printing_section",
+  "zpl_printer_host",
+  "zpl_printer_port"
+ ],
+ "fields": [
+  {
+   "fieldname": "company_section",
+   "fieldtype": "Section Break",
+   "label": "Company"
+  },
+  {
+   "fieldname": "company",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Company",
+   "options": "Company"
+  },
+  {
+   "fieldname": "column_break_1",
+   "fieldtype": "Column Break"
+  },
+  {
+   "description": "Used in warehouse names e.g. {ABBR} - Bulk",
+   "fieldname": "site_abbreviation",
+   "fieldtype": "Data",
+   "label": "Site Abbreviation"
+  },
+  {
+   "fieldname": "operations_section",
+   "fieldtype": "Section Break",
+   "label": "Operations"
+  },
+  {
+   "default": "Continuous",
+   "description": "Continuous releases each Sales Order immediately on submit; Waves batch by cutoff/route/dock",
+   "fieldname": "release_mode",
+   "fieldtype": "Select",
+   "label": "Release Mode",
+   "options": "Continuous\nWaves"
+  },
+  {
+   "default": "FEFO",
+   "fieldname": "pick_strategy",
+   "fieldtype": "Select",
+   "label": "Pick Strategy",
+   "options": "FEFO\nFIFO"
+  },
+  {
+   "fieldname": "column_break_2",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "0",
+   "description": "Generate synthetic floor events for demos (no real scans)",
+   "fieldname": "simulation_mode",
+   "fieldtype": "Check",
+   "label": "Simulation Mode"
+  },
+  {
+   "collapsible": 1,
+   "fieldname": "count_section",
+   "fieldtype": "Section Break",
+   "label": "Counting"
+  },
+  {
+   "default": "Blind",
+   "description": "Default method when a Count Program does not specify one",
+   "fieldname": "default_count_method",
+   "fieldtype": "Select",
+   "label": "Default Count Method",
+   "options": "Blind\nExpected"
+  },
+  {
+   "collapsible": 1,
+   "fieldname": "integrations_section",
+   "fieldtype": "Section Break",
+   "label": "Integrations (Phase 6-8)"
+  },
+  {
+   "default": "0",
+   "fieldname": "enable_carrier_gateway",
+   "fieldtype": "Check",
+   "label": "Enable Carrier Gateway"
+  },
+  {
+   "default": "0",
+   "fieldname": "enable_customs_gateway",
+   "fieldtype": "Check",
+   "label": "Enable Customs Gateway"
+  },
+  {
+   "default": "0",
+   "fieldname": "enable_automation_bridge",
+   "fieldtype": "Check",
+   "label": "Enable Automation Bridge"
+  },
+  {
+   "collapsible": 1,
+   "fieldname": "printing_section",
+   "fieldtype": "Section Break",
+   "label": "Label Printing"
+  },
+  {
+   "description": "Raw TCP (port 9100) ZPL printer; leave blank to download .zpl instead",
+   "fieldname": "zpl_printer_host",
+   "fieldtype": "Data",
+   "label": "ZPL Printer Host"
+  },
+  {
+   "default": "9100",
+   "fieldname": "zpl_printer_port",
+   "fieldtype": "Int",
+   "label": "ZPL Printer Port"
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "issingle": 1,
+ "links": [],
+ "modified": "2026-10-02 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "FWMS",
+ "name": "FWMS Settings",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "email": 1,
+   "print": 1,
+   "read": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "read": 1,
+   "role": "FWMS Operator"
+  },
+  {
+   "create": 1,
+   "print": 1,
+   "read": 1,
+   "role": "FWMS Supervisor",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "read": 1,
+   "role": "FWMS Inventory Control"
+  }
+ ],
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": [],
+ "track_changes": 1
+}

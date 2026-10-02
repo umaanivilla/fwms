@@ -1,0 +1,250 @@
+{
+ "actions": [],
+ "autoname": "format:FW-CONS-{YYYY}-{#####}",
+ "creation": "2026-10-02 00:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "transport_section",
+  "transport_mode",
+  "carrier",
+  "vehicle_reference",
+  "column_break_t",
+  "status",
+  "shipment",
+  "route_section",
+  "incoterms",
+  "incoterms_location",
+  "column_break_r",
+  "place_of_loading",
+  "place_of_delivery",
+  "docs_section",
+  "delivery_notes",
+  "weights_section",
+  "gross_weight_kg",
+  "net_weight_kg",
+  "column_break_w",
+  "volume_m3",
+  "package_count",
+  "carrier_docs_section",
+  "carrier_doc_type",
+  "carrier_doc_no",
+  "container_no",
+  "seal_no",
+  "column_break_c",
+  "export_declaration_no",
+  "export_declaration_status"
+ ],
+ "fields": [
+  {
+   "fieldname": "transport_section",
+   "fieldtype": "Section Break",
+   "label": "Transport"
+  },
+  {
+   "default": "Road",
+   "description": "Road/Sea/Air/Rail/Courier — CMR (road), House B/L (sea) and House AWB (air) print formats arrive with the Phase 6 Carrier Gateway",
+   "fieldname": "transport_mode",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Transport Mode",
+   "options": "Road\nSea\nAir\nRail\nCourier"
+  },
+  {
+   "fieldname": "carrier",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Carrier"
+  },
+  {
+   "fieldname": "vehicle_reference",
+   "fieldtype": "Data",
+   "label": "Vehicle / Flight / Vessel Reference"
+  },
+  {
+   "fieldname": "column_break_t",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "Draft",
+   "fieldname": "status",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Status",
+   "options": "Draft\nConfirmed\nShipped",
+   "read_only": 1
+  },
+  {
+   "description": "Optional link to the native ERPNext Shipment",
+   "fieldname": "shipment",
+   "fieldtype": "Link",
+   "label": "Shipment",
+   "options": "Shipment"
+  },
+  {
+   "fieldname": "route_section",
+   "fieldtype": "Section Break",
+   "label": "Route"
+  },
+  {
+   "fieldname": "incoterms",
+   "fieldtype": "Data",
+   "label": "Incoterms"
+  },
+  {
+   "fieldname": "incoterms_location",
+   "fieldtype": "Data",
+   "label": "Incoterms Location"
+  },
+  {
+   "fieldname": "column_break_r",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "place_of_loading",
+   "fieldtype": "Data",
+   "label": "Place of Loading"
+  },
+  {
+   "fieldname": "place_of_delivery",
+   "fieldtype": "Data",
+   "label": "Place of Delivery"
+  },
+  {
+   "fieldname": "docs_section",
+   "fieldtype": "Section Break",
+   "label": "Delivery Notes"
+  },
+  {
+   "fieldname": "delivery_notes",
+   "fieldtype": "Table",
+   "label": "Delivery Notes",
+   "options": "FWMS Consignment Delivery Note",
+   "reqd": 1
+  },
+  {
+   "collapsible": 1,
+   "fieldname": "weights_section",
+   "fieldtype": "Section Break",
+   "label": "Weights & Measures"
+  },
+  {
+   "fieldname": "gross_weight_kg",
+   "fieldtype": "Float",
+   "label": "Gross Weight (kg)"
+  },
+  {
+   "fieldname": "net_weight_kg",
+   "fieldtype": "Float",
+   "label": "Net Weight (kg)"
+  },
+  {
+   "fieldname": "column_break_w",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "volume_m3",
+   "fieldtype": "Float",
+   "label": "Volume (m³)"
+  },
+  {
+   "fieldname": "package_count",
+   "fieldtype": "Int",
+   "label": "Package Count"
+  },
+  {
+   "collapsible": 1,
+   "fieldname": "carrier_docs_section",
+   "fieldtype": "Section Break",
+   "label": "Carrier & Customs References (reserved)"
+  },
+  {
+   "description": "e.g. CMR / House B/L / House AWB — printed by Carrier Gateway adapters in Phase 6",
+   "fieldname": "carrier_doc_type",
+   "fieldtype": "Data",
+   "label": "Carrier Doc Type"
+  },
+  {
+   "fieldname": "carrier_doc_no",
+   "fieldtype": "Data",
+   "label": "Carrier Doc No"
+  },
+  {
+   "fieldname": "container_no",
+   "fieldtype": "Data",
+   "label": "Container No"
+  },
+  {
+   "fieldname": "seal_no",
+   "fieldtype": "Data",
+   "label": "Seal No"
+  },
+  {
+   "fieldname": "column_break_c",
+   "fieldtype": "Column Break"
+  },
+  {
+   "description": "Phase 7 CustomsGateway filing reference",
+   "fieldname": "export_declaration_no",
+   "fieldtype": "Data",
+   "label": "Export Declaration No"
+  },
+  {
+   "default": "Not Filed",
+   "fieldname": "export_declaration_status",
+   "fieldtype": "Select",
+   "label": "Export Declaration Status",
+   "options": "Not Filed\nFiled\nAccepted\nRejected"
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2026-10-02 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "FWMS",
+ "name": "FWMS Consignment",
+ "naming_rule": "Expression",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "print": 1,
+   "read": 1,
+   "role": "FWMS Operator",
+   "write": 1
+  },
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "FWMS Supervisor",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "print": 1,
+   "read": 1,
+   "role": "FWMS Inventory Control"
+  }
+ ],
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": [],
+ "track_changes": 1
+}

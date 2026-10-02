@@ -1,0 +1,186 @@
+{
+ "actions": [],
+ "autoname": "field:worker_code",
+ "creation": "2026-10-02 00:00:00.000000",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "worker_code",
+  "person_name",
+  "active",
+  "column_break_1",
+  "user",
+  "shift",
+  "assignment_section",
+  "default_zone",
+  "column_break_2",
+  "skills",
+  "pin_hash",
+  "section_break_a0",
+  "current_task",
+  "column_break_a1",
+  "tasks_completed",
+  "scans_today"
+ ],
+ "fields": [
+  {
+   "description": "e.g. W001",
+   "fieldname": "worker_code",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Worker Code",
+   "reqd": 1,
+   "unique": 1
+  },
+  {
+   "fieldname": "person_name",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Person Name",
+   "reqd": 1
+  },
+  {
+   "default": "1",
+   "fieldname": "active",
+   "fieldtype": "Check",
+   "in_list_view": 1,
+   "label": "Active"
+  },
+  {
+   "fieldname": "column_break_1",
+   "fieldtype": "Column Break"
+  },
+  {
+   "description": "System user for RF PIN login (role FWMS Operator)",
+   "fieldname": "user",
+   "fieldtype": "Link",
+   "label": "User",
+   "options": "User"
+  },
+  {
+   "fieldname": "shift",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Shift",
+   "options": "FWMS Shift"
+  },
+  {
+   "fieldname": "assignment_section",
+   "fieldtype": "Section Break",
+   "label": "Assignment"
+  },
+  {
+   "fieldname": "default_zone",
+   "fieldtype": "Link",
+   "label": "Default Zone",
+   "options": "FWMS Zone"
+  },
+  {
+   "fieldname": "column_break_2",
+   "fieldtype": "Column Break"
+  },
+  {
+   "description": "Comma-separated task types this worker performs (blank = all)",
+   "fieldname": "skills",
+   "fieldtype": "Small Text",
+   "label": "Skills"
+  },
+  {
+   "fieldname": "pin_hash",
+   "fieldtype": "Data",
+   "hidden": 1,
+   "label": "PIN Hash",
+   "no_copy": 1,
+   "print_hide": 1,
+   "read_only": 1,
+   "report_hide": 1,
+   "search_index": 0
+  },
+  {
+   "fieldname": "section_break_a0",
+   "fieldtype": "Section Break",
+   "label": "Live State"
+  },
+  {
+   "fieldname": "current_task",
+   "fieldtype": "Link",
+   "label": "Current Task",
+   "options": "FWMS Task",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_a1",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "tasks_completed",
+   "fieldtype": "Int",
+   "label": "Tasks Completed",
+   "read_only": 1
+  },
+  {
+   "fieldname": "scans_today",
+   "fieldtype": "Int",
+   "label": "Scans Today",
+   "read_only": 1
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "links": [
+  {
+   "group": "Activity",
+   "link_doctype": "FWMS Task",
+   "link_fieldname": "worker"
+  },
+  {
+   "group": "Activity",
+   "link_doctype": "FWMS Event Log",
+   "link_fieldname": "worker"
+  }
+ ],
+ "modified": "2026-10-02 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "FWMS",
+ "name": "FWMS Worker",
+ "naming_rule": "By fieldname",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "read": 1,
+   "role": "FWMS Operator"
+  },
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "FWMS Supervisor",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "read": 1,
+   "role": "FWMS Inventory Control"
+  }
+ ],
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": [],
+ "track_changes": 1
+}

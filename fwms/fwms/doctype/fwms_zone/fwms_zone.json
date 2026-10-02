@@ -1,0 +1,143 @@
+{
+ "actions": [],
+ "autoname": "field:zone_name",
+ "creation": "2026-10-02 00:00:00.000000",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "zone_name",
+  "zone_type",
+  "warehouse",
+  "barcode_prefix",
+  "column_break_1",
+  "is_physical_only",
+  "section_break_1",
+  "map_x",
+  "map_y",
+  "map_w",
+  "map_h",
+  "color"
+ ],
+ "fields": [
+  {
+   "fieldname": "zone_name",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Zone Name",
+   "reqd": 1,
+   "unique": 1
+  },
+  {
+   "fieldname": "zone_type",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Zone Type",
+   "options": "Receiving Docks\nQC Hold\nBulk\nPick Faces\nPacking\nShipping Docks",
+   "reqd": 1
+  },
+  {
+   "description": "ERPNext warehouse backing this zone (blank for physical-only zones like Packing/Shipping)",
+   "fieldname": "warehouse",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Warehouse",
+   "options": "Warehouse"
+  },
+  {
+   "fieldname": "barcode_prefix",
+   "fieldtype": "Data",
+   "label": "Barcode Prefix"
+  },
+  {
+   "fieldname": "column_break_1",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "0",
+   "description": "No ERP warehouse; locations tracked in FWMS only",
+   "fieldname": "is_physical_only",
+   "fieldtype": "Check",
+   "label": "Physical Only"
+  },
+  {
+   "collapsible": 1,
+   "description": "Coordinates on the floor-view map (percent grid)",
+   "fieldname": "section_break_1",
+   "fieldtype": "Section Break",
+   "label": "Floor View Layout"
+  },
+  {
+   "fieldname": "map_x",
+   "fieldtype": "Int",
+   "label": "Map X"
+  },
+  {
+   "fieldname": "map_y",
+   "fieldtype": "Int",
+   "label": "Map Y"
+  },
+  {
+   "fieldname": "map_w",
+   "fieldtype": "Int",
+   "label": "Map Width"
+  },
+  {
+   "fieldname": "map_h",
+   "fieldtype": "Int",
+   "label": "Map Height"
+  },
+  {
+   "description": "CSS color for the floor view",
+   "fieldname": "color",
+   "fieldtype": "Data",
+   "label": "Color"
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2026-10-02 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "FWMS",
+ "name": "FWMS Zone",
+ "naming_rule": "By fieldname",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "read": 1,
+   "role": "FWMS Operator"
+  },
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "FWMS Supervisor",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "read": 1,
+   "role": "FWMS Inventory Control"
+  }
+ ],
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": [],
+ "track_changes": 1
+}
