@@ -52,6 +52,15 @@ def service_worker():
 
 
 @frappe.whitelist(allow_guest=True)
+def csrf():
+	"""CSRF token for the vanilla-JS RF app (frappe.sessions.get_csrf_token
+	is not guest-whitelisted in v16)."""
+	from frappe.sessions import get_csrf_token
+
+	return get_csrf_token()
+
+
+@frappe.whitelist(allow_guest=True)
 def manifest():
 	if not frappe.response.get("headers"):
 		frappe.response.headers = {}

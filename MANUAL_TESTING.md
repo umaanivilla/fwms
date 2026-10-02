@@ -246,20 +246,32 @@ Grade matrix: **A** → Pick Faces, **B** → QC Hold, **Refurb** → Bulk,
 
 ## 12. Floor view — live behaviour
 
-1. Open `/floorview` (as Supervisor) side-by-side with `/rf`.
-2. Perform any RF scan (e.g. §2 receiving commit).
-   **Expect:** new event appears in the stream within ~2 s; the zone block
-   flashes with a highlight border.
-3. Filters: click each of the 10 chips (All events, Handheld scans only,
-   Receiving & QC, … Alerts & supervisor) — the stream re-filters.
-4. Labels toggle **Scans** — only `▤` scan events remain.
-5. KPI cards: run `bench --site fwms.localhost execute fwms.dev.check_kpis`
-   (or wait ≤5 min) → cards refresh (realtime event `fwms_kpi`).
-6. **Tour (11 steps)**: click *Tour* → step through; spotlight scrolls to the
-   matching region per step.
-7. **Simulation mode**: FWMS Settings → ✅ Simulation Mode → the ⚡ Simulate
-   chip appears on the floor view; clicking it injects synthetic events
-   (worker/zone random) — good for demoing without scans. Turn it off after.
+1. Open `/floorview`. **Expect:** redirect to the Desk login if signed out;
+   after login (e.g. `supervisor@fwms.local`) the full canvas floor renders —
+   warehouse walls and doors, racks A–I filled from **real bin stock** (fill =
+   LPN qty, yellow tick = A-class, green outline = pick faces), staging
+   pallets from actual receiving LPNs, 26 colour-coded workers, conveyor,
+   carrier lanes, pack benches, KPI grid, event log.
+2. Leave it open next to `/rf` and perform any RF action (e.g. §2 commit).
+   **Expect:** new event in the log within ~2 s; workers with open tasks walk
+   to their task bins (real FWMS Task coordinates) with task bubbles.
+3. Controls: **Pause** freezes walking; **Speed** scales it; **Release
+   Continuous/Waves** switches the live setting (KPI card updates); **Labels**
+   All/Scans/Off.
+4. `+ Inbound truck` → an idle inbound door goes **Busy** with a trailer id
+   and a check-in event. `+ 20 orders` → creates **20 real Sales Orders**
+   (Continuous mode releases waves + pick tasks immediately — watch the pick
+   queue and Orders & Picking feed).
+5. Filters: the log dropdown mirrors the 10 reference filters; the 11-step
+   **tour** highlights each zone, selects a matching worker and pre-filters
+   the log per step.
+6. Click any worker (canvas or roster chips) → inspector shows role, current
+   task and why, scans today, tasks done, recent scans.
+7. KPI cards refresh every ~5 min via the scheduler
+   (`bench --site fwms.localhost execute fwms.dev.check_kpis` to force).
+8. **Simulation mode**: FWMS Settings → ✅ Simulation Mode → synthetic demo
+   events via `fwms.api.floorview.simulate_tick` (wire a button or `bench
+   execute`). Turn it off after.
 
 ---
 

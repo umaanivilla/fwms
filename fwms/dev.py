@@ -163,8 +163,14 @@ def check_floorview():
 
 		d = dashboard()
 		return {
-			"zones": len(d["zones"]), "docks": len(d["docks"]), "workers": len(d["workers"]),
-			"events": len(d["events"]), "kpi": bool(d["kpi"]), "mode": d["release_mode"],
+			"slots": len(d["slots"]),
+			"stocked_slots": sum(1 for s in d["slots"] if s["qty"] > 0),
+			"docks": len(d["docks"]),
+			"workers": len(d["workers"]),
+			"tasks_with_coords": sum(1 for t in d["tasks"] if t["to_xy"][0] is not None),
+			"events": len(d["events"]),
+			"kpi": bool(d["kpi"]),
+			"mode": d["release_mode"],
 		}
 
 	return _run(fn)
@@ -266,5 +272,14 @@ def check_replenish_confirm():
 			qty=frappe.db.get_value("FWMS Task", task[0], "qty"),
 			batch_no=sources[0]["batch_no"] or "",
 		)
+
+	return _run(fn)
+
+
+def check_spike():
+	def fn():
+		from fwms.api.floorview import simulate_orders
+
+		return simulate_orders(count=3)
 
 	return _run(fn)

@@ -5,24 +5,40 @@
 // ---------------------------------------------------------------- plumbing
 
 let CSRF = null;
+let csrfFetch = null;
 
-async function api(method, params = {}) {
-	if (!CSRF) {
-		const r = await fetch('/api/method/frappe.auth.get_csrf_token', { method: 'POST' });
-		CSRF = (await r.json()).message;
+async function ensureCsrf(force = false) {
+	if (CSRF && !force) return CSRF;
+	if (!csrfFetch) {
+		csrfFetch = fetch('/api/method/fwms.api.pwa.csrf', { method: 'POST' })
+			.then((r) => r.json())
+			.then((d) => { CSRF = d.message || null; })
+			.catch(() => { CSRF = null; })
+			.finally(() => { csrfFetch = null; });
 	}
+	await csrfFetch;
+	return CSRF;
+}
+
+async function api(method, params = {}, _retry = true) {
+	await ensureCsrf();
 	const body = new URLSearchParams();
 	for (const [k, v] of Object.entries(params)) body.append(k, v === undefined ? '' : v);
-	const resp = await fetch(`/api/method/${method}`, {
-		method: 'POST',
-		headers: {
-			'X-Frappe-CSRF-Token': CSRF,
-			'Content-Type': 'application/x-www-form-urlencoded',
-			'Accept': 'application/json',
-		},
-		body,
-	});
+	const headers = {
+		'Content-Type': 'application/x-www-form-urlencoded',
+		'Accept': 'application/json',
+	};
+	if (CSRF) headers['X-Frappe-CSRF-Token'] = CSRF;
+	const resp = await fetch(`/api/method/${method}`, { method: 'POST', headers, body });
 	const data = await resp.json().catch(() => ({}));
+	// session rotated (login/logout) -> stale token: refetch once and retry
+	if (data.exc_type === 'CSRFTokenError' || /Invalid Request/.test(data.exc || '')) {
+		if (_retry) {
+			CSRF = null;
+			await ensureCsrf(true);
+			return api(method, params, false);
+		}
+	}
 	if (!resp.ok || data.exc) {
 		const msg = (data._server_messages && JSON.stringify(data._server_messages).slice(0, 220)) ||
 			(data.exc || '').toString().split('\n').filter(Boolean).pop() || `HTTP ${resp.status}`;
@@ -123,12 +139,13 @@ function topbar(subtitle) {
 		),
 		el('button', { onclick: () => { location.hash = '#menu'; } }, 'Menu'),
 		el('button', {
-			onclick: async () => {
-				try { await api('fwms.api.rf_auth.logout'); } catch (e) { /* ignore */ }
-				localStorage.removeItem('fwms.worker');
-				S.worker = null;
-				location.hash = '#login';
-			},
+		onclick: async () => {
+			try { await api('fwms.api.rf_auth.logout'); } catch (e) { /* ignore */ }
+			localStorage.removeItem('fwms.worker');
+			S.worker = null;
+			CSRF = null; // session rotated on logout
+			location.hash = '#login';
+		},
 		}, 'Logout'),
 	);
 }
@@ -159,6 +176,7 @@ function screenLogin() {
 					const me = await api('fwms.api.rf_auth.login', { worker_code: code.value.trim(), pin: pin.value.trim() });
 					S.worker = me;
 					localStorage.setItem('fwms.worker', JSON.stringify(me));
+					CSRF = null; // session rotated on login; refetch on next call
 					toast(`Signed in: ${me.person_name}`, 'ok');
 					go('#menu');
 				} catch (e) { toast(e.message, 'err'); pin.value = ''; }

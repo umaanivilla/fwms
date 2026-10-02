@@ -2,63 +2,103 @@
 <html lang="en">
 <head>
 	<meta charset="utf-8">
-	<meta name="viewport" content="width=device-width, initial-scale=1">
-	<title>FWMS Floor View</title>
+	<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+	<title>FWMS — Warehouse Floor</title>
+	<link rel="preconnect" href="https://fonts.googleapis.com">
+	<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+	<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700&family=Barlow+Condensed:wght@500;600;700&family=JetBrains+Mono:wght@400;600&display=swap">
 	<link rel="stylesheet" href="/assets/fwms/floorview/css/floorview.css">
 </head>
 <body>
-	<div id="fv">
-		<header class="fv-head">
-			<div class="brand">
-				<div class="logo">FWMS</div>
-				<div class="shift">
-					<div id="clock" class="clock">--:--</div>
-					<div id="shiftname" class="sub">shift</div>
-				</div>
-			</div>
-			<div class="kpis" id="kpis"></div>
-			<div class="controls">
-				<div id="release-mode" class="chip">Release: —</div>
-				<div id="sim-btn" class="chip action hidden" onclick="FV.simTick()">⚡ Simulate</div>
-				<div id="tour-btn" class="chip action" onclick="FV.tour.start()">Tour (11 steps)</div>
-			</div>
-		</header>
-		<main class="fv-main">
-			<section class="floor">
-				<h3>Floor</h3>
-				<div id="zone-map" class="zone-map"></div>
-				<h3>Dock doors</h3>
-				<div id="docks" class="docks"></div>
-				<h3>Workers on floor <span id="worker-count" class="sub"></span></h3>
-				<div id="workers" class="workers"></div>
-			</section>
-			<section class="stream">
-				<div class="stream-head">
-					<h3>Live events</h3>
-					<div id="label-toggle" class="labels">
-						<span class="sub">Labels:</span>
-						<button data-mode="all" class="on">All</button>
-						<button data-mode="scans">Scans</button>
-						<button data-mode="off">Off</button>
-					</div>
-				</div>
-				<div id="filters" class="filters"></div>
-				<div id="events" class="events"></div>
-			</section>
-		</main>
-	</div>
-	<div id="tour-overlay" class="tour-overlay hidden">
-		<div class="tour-card">
-			<div class="tour-step"><span id="tour-n">1</span> / 11</div>
-			<h2 id="tour-title"></h2>
-			<p id="tour-body"></p>
-			<div class="tour-nav">
-				<button onclick="FV.tour.prev()">Previous</button>
-				<button class="primary" onclick="FV.tour.next()">Next step</button>
-				<button class="ghost" onclick="FV.tour.stop()">Exit tour</button>
-			</div>
+<div class="app">
+	<header class="top">
+		<div class="brand">
+			<h1><span>FWMS</span>Warehouse Floor</h1>
+			<p>Live floor state from the real WMS — every step confirmed by an RF scan on the <a href="/rf" class="lnk">RF terminal</a>.</p>
 		</div>
-	</div>
-	<script src="/assets/fwms/floorview/js/floorview.js"></script>
+		<div class="controls">
+			<button class="btn primary" id="btnPlay" type="button">Pause</button>
+			<div class="seg" id="speedSeg" role="group" aria-label="Speed">
+				<span class="lbl">Speed</span>
+				<button type="button" data-v="0.5" aria-pressed="false">0.5×</button>
+				<button type="button" data-v="1" aria-pressed="true">1×</button>
+				<button type="button" data-v="2" aria-pressed="false">2×</button>
+				<button type="button" data-v="5" aria-pressed="false">5×</button>
+			</div>
+			<div class="seg" id="modeSeg" role="group" aria-label="Order release">
+				<span class="lbl">Release</span>
+				<button type="button" data-v="Continuous" aria-pressed="true">Continuous</button>
+				<button type="button" data-v="Waves" aria-pressed="false">Waves</button>
+			</div>
+			<div class="seg" id="bubbleSeg" role="group" aria-label="Status labels">
+				<span class="lbl">Labels</span>
+				<button type="button" data-v="all" aria-pressed="false">All</button>
+				<button type="button" data-v="scans" aria-pressed="true">Scans</button>
+				<button type="button" data-v="off" aria-pressed="false">Off</button>
+			</div>
+			<button class="btn" id="btnTruck" type="button">+ Inbound truck</button>
+			<button class="btn" id="btnSpike" type="button">+ 20 orders</button>
+			<button class="btn" id="btnReset" type="button">Restart</button>
+		</div>
+	</header>
+
+	<section class="kpis" aria-label="Live metrics">
+		<div class="kpi"><span class="k">Orders shipped</span><span class="v" id="kShipped">–</span><span class="s">today</span></div>
+		<div class="kpi"><span class="k">Open orders</span><span class="v" id="kOpen">–</span><span class="s">to pick · pack · ship</span></div>
+		<div class="kpi"><span class="k">Order cycle time</span><span class="v" id="kCycle">–</span><span class="s">release to trailer, last 30</span></div>
+		<div class="kpi"><span class="k">Lines picked / hr</span><span class="v" id="kLines">–</span><span class="s">pick tasks done last hour</span></div>
+		<div class="kpi"><span class="k">RF scans</span><span class="v" id="kScans">–</span><span class="s">handheld scans, last hour</span></div>
+		<div class="kpi"><span class="k">Pack queue</span><span class="v" id="kPack">–</span><span class="s">cartons awaiting pack</span></div>
+		<div class="kpi"><span class="k">Dock doors in use</span><span class="v" id="kDock">–</span><span class="s">idle · busy · loading</span></div>
+		<div class="kpi"><span class="k">Release</span><span class="v" id="kWave">Live</span><span class="s" id="kWaveS">each order released on arrival</span></div>
+	</section>
+
+	<main class="layout">
+		<div class="leftcol">
+			<section class="card floor">
+				<div class="floorhead">
+					<div class="clock"><span id="clock">--:--</span><small id="shiftname">shift</small></div>
+					<div class="legend" id="legend"></div>
+				</div>
+				<div class="canvasWrap" id="wrap"><canvas id="cv" aria-label="Top-down warehouse floor"></canvas></div>
+				<div class="statebar">
+					<div class="bar" id="stateBar"></div>
+					<div class="barkey" id="stateKey"></div>
+				</div>
+			</section>
+
+			<section class="card tour" aria-label="Guided walkthrough">
+				<div class="tourmain">
+					<div class="tourtop"><span class="n" id="tourN">1 / 11</span><h2 id="tourTitle"></h2></div>
+					<p id="tourBody"></p>
+					<p class="eng" id="tourEng"></p>
+				</div>
+				<div class="tournav">
+					<div class="row">
+						<button class="btn" id="tourPrev" type="button">Previous</button>
+						<button class="btn" id="tourNext" type="button">Next step</button>
+					</div>
+					<div class="pips" id="pips"></div>
+					<span class="note">Each step highlights its area, selects a worker and filters the log.</span>
+				</div>
+			</section>
+		</div>
+
+		<aside class="side">
+			<section class="card">
+				<div class="sectionhead"><h2>Worker</h2><button class="btn" id="btnFollow" type="button" hidden>Clear</button></div>
+				<div class="inspbody" id="insp"></div>
+			</section>
+			<section class="card log">
+				<div class="sectionhead">
+					<h2>WMS event log</h2>
+					<select id="logFilter" aria-label="Filter events"></select>
+				</div>
+				<ul class="evlist" id="evlist" aria-live="off"></ul>
+			</section>
+		</aside>
+	</main>
+</div>
+<script src="/assets/fwms/floorview/js/floorview.js"></script>
 </body>
 </html>
