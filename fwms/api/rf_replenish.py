@@ -91,6 +91,16 @@ def confirm(task: str, from_bin: str, qty: float, batch_no: str | None = None) -
 	row.use_serial_batch_fields = 1
 	if batch_no or stock[0].batch_no:
 		row.batch_no = batch_no or stock[0].batch_no
+	if frappe.get_cached_value("Item", item, "has_serial_no"):
+		serials = frappe.get_all(
+			"Serial No",
+			filters={"item_code": item, "warehouse": from_wh, "status": "Active"},
+			pluck="name",
+			limit=int(qty),
+		)
+		if len(serials) < int(qty):
+			frappe.throw(f"Only {len(serials)} active serials of {item} in {from_wh} — cannot move {qty}")
+		row.serial_no = "\n".join(serials)
 	se.insert(ignore_permissions=True)
 	se.submit()
 
@@ -102,10 +112,12 @@ def confirm(task: str, from_bin: str, qty: float, batch_no: str | None = None) -
 		"FWMS LPN", filters={"bin": from_bin, "status": "In Bin"}, pluck="name"
 	)
 	for candidate in lpn_rows:
-		if any(
-			r.item == item and (not batch_no or r.batch_no == batch_no)
-			for r in frappe.get_all("FWMS LPN Item", {"parenttype": "FWMS LPN", "parent": candidate, "item": item}, pluck="batch_no")
-		):
+		rows = frappe.get_all(
+			"FWMS LPN Item",
+			filters={"parenttype": "FWMS LPN", "parent": candidate, "item": item},
+			fields=["batch_no"],
+		)
+		if any(not batch_no or r.batch_no == batch_no for r in rows):
 			src_lpn = candidate
 			break
 

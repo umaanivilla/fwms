@@ -102,15 +102,27 @@ def check_replenishment() -> int:
 		if exists:
 			continue
 		short = flt(bin_row.max_qty) - stock
+		qty = short if short > 0 else flt(bin_row.min_qty)
+		qty = min(qty, _bulk_available(bin_row.primary_item))
+		if qty <= 0:
+			continue  # nothing in bulk to send forward yet
 		create_task(
 			"Replenish",
 			item=bin_row.primary_item,
-			qty=short if short > 0 else flt(bin_row.min_qty),
+			qty=qty,
 			to_bin=bin_row.name,
 			priority="1-High",
 		)
 		created += 1
 	return created
+
+
+def _bulk_available(item: str) -> float:
+	"""Qty of item sitting in Bulk-zone LPNs."""
+	from fwms.fwms.doctype.fwms_bin.fwms_bin import get_zone_stock
+
+	bulk_zones = frappe.get_all("FWMS Zone", filters={"zone_type": "Bulk"}, pluck="name")
+	return sum(flt(r["qty"]) for r in get_zone_stock(bulk_zones, item=item))
 
 
 def snapshot_kpis() -> str:

@@ -228,3 +228,43 @@ def seed_with_traceback(site=None):
 		frappe.db.rollback()
 		traceback.print_exc()
 		return "FAIL (traceback above)"
+
+
+def check_returns():
+	def fn():
+		frappe.set_user("w007@fwms.local")
+		from fwms.api import rf_returns
+
+		dn = frappe.get_all("Delivery Note", filters={"docstatus": 1}, pluck="name", order_by="creation desc", limit=1)[0]
+		info = rf_returns.dn_info(dn)
+		item = info["items"][0]
+		return rf_returns.process_return(
+			delivery_note=dn,
+			lines=[{"item_code": item["item_code"], "qty": 1, "grade": "B"}],
+		)
+
+	return _run(fn)
+
+
+def check_replenish_confirm():
+	def fn():
+		frappe.set_user("w008@fwms.local")
+		from fwms.api import rf_replenish
+
+		task = frappe.get_all(
+			"FWMS Task",
+			filters={"task_type": "Replenish", "status": ("in", ("Open",))},
+			pluck="name", limit=1,
+		)
+		if not task:
+			return "no open replenish tasks (run check_replenish first)"
+		sources = rf_replenish.source_bins(item=frappe.db.get_value("FWMS Task", task[0], "item"))
+		if not sources:
+			return "no bulk source stock"
+		return rf_replenish.confirm(
+			task=task[0], from_bin=sources[0]["bin"],
+			qty=frappe.db.get_value("FWMS Task", task[0], "qty"),
+			batch_no=sources[0]["batch_no"] or "",
+		)
+
+	return _run(fn)
