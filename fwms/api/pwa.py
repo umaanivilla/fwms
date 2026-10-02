@@ -3,13 +3,14 @@
 from __future__ import annotations
 
 import frappe
+from werkzeug.wrappers import Response
 
 SERVICE_WORKER_JS = """// FWMS RF offline shell
-const CACHE = 'fwms-rf-v1';
+const CACHE = 'fwms-rf-v2';
 const SHELL = [
   '/rf',
-  '/assets/fwms/rf/css/rf.css',
-  '/assets/fwms/rf/js/app.js',
+  '/assets/fwms/rf/css/rf.css?v=20261002b',
+  '/assets/fwms/rf/js/app.js?v=20261002b',
 ];
 self.addEventListener('install', (e) => {
   e.waitUntil(caches.open(CACHE).then((c) => c.addAll(SHELL)).then(() => self.skipWaiting()));
@@ -42,13 +43,14 @@ MANIFEST_JSON = """{
 """
 
 
-@frappe.whitelist(allow_guest=True)
+@frappe.whitelist(allow_guest=True, methods=["GET", "POST"])
 def service_worker():
-	if not frappe.response.get("headers"):
-		frappe.response.headers = {}
-	frappe.response.headers["Content-Type"] = "application/javascript"
-	frappe.response.headers["Service-Worker-Allowed"] = "/rf"
-	frappe.response.text = SERVICE_WORKER_JS
+	"""Raw JS response — a whitelisted method may return a werkzeug Response
+	(frappe.handler passes it through)."""
+	return Response(SERVICE_WORKER_JS, mimetype="application/javascript", headers={
+		"Service-Worker-Allowed": "/rf",
+		"Cache-Control": "no-cache",
+	})
 
 
 @frappe.whitelist(allow_guest=True)
@@ -60,9 +62,7 @@ def csrf():
 	return get_csrf_token()
 
 
-@frappe.whitelist(allow_guest=True)
+@frappe.whitelist(allow_guest=True, methods=["GET", "POST"])
 def manifest():
-	if not frappe.response.get("headers"):
-		frappe.response.headers = {}
-	frappe.response.headers["Content-Type"] = "application/manifest+json"
-	frappe.response.text = MANIFEST_JSON
+	return Response(MANIFEST_JSON, mimetype="application/manifest+json",
+		headers={"Cache-Control": "no-cache"})

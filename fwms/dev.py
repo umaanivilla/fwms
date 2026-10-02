@@ -283,3 +283,24 @@ def check_spike():
 		return simulate_orders(count=3)
 
 	return _run(fn)
+
+
+def debug_commit_currency():
+	def fn():
+		frappe.set_user("w001@fwms.local")
+		from fwms.api import rf_receiving
+		import traceback
+
+		try:
+			return rf_receiving.commit_receipt(
+				po="PUR-ORD-2026-00005", lpn_barcode=None,
+				lines=[{"item_code": "COCOA-100", "qty": 2, "qc": "Pass"}],
+			)
+		except Exception:
+			tb = traceback.format_exc()
+			with open("/tmp/fwms_commit_tb.txt", "w") as f:
+				f.write(tb)
+			frappe.db.rollback()
+			raise
+
+	return _run(fn)

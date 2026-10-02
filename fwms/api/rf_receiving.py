@@ -5,7 +5,7 @@ from __future__ import annotations
 import frappe
 from frappe.utils import flt, nowdate
 
-from fwms.api.rf_common import current_worker, require_operator
+from fwms.api.rf_common import as_list, current_worker, require_operator
 from fwms.events import emit
 from fwms.tasks import create_task
 from fwms.utils import get_next_lpn_barcode, get_warehouse_for_type
@@ -36,6 +36,9 @@ def po_info(po: str) -> dict:
 		"po": po,
 		"supplier": po_doc.supplier,
 		"supplier_name": po_doc.supplier_name,
+		"pending_count": len(items),
+		"fully_received": len(items) == 0,
+		"status": po_doc.status,
 		"items": items,
 	}
 
@@ -48,6 +51,7 @@ def commit_receipt(po: str, lpn_barcode: str | None, lines: list[dict]) -> dict:
 	"""
 	require_operator()
 	worker = current_worker()
+	lines = as_list(lines, "lines")
 	po_doc = frappe.get_doc("Purchase Order", po)
 	if po_doc.docstatus != 1:
 		frappe.throw(f"Purchase Order {po} is not submitted")
@@ -70,6 +74,9 @@ def commit_receipt(po: str, lpn_barcode: str | None, lines: list[dict]) -> dict:
 	pr.supplier = po_doc.supplier
 	pr.posting_date = nowdate()
 	pr.set_posting_time = 1
+	# the PR must match its PO's currency (validate_with_previous_doc)
+	pr.currency = po_doc.currency
+	pr.conversion_rate = po_doc.conversion_rate or 1
 	pr.buying_price_list = po_doc.buying_price_list if hasattr(po_doc, "buying_price_list") else None
 
 	for line in lines:

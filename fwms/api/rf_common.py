@@ -2,12 +2,30 @@
 
 from __future__ import annotations
 
+import json
+
 import frappe
 
 from fwms.events import emit
 from fwms.utils import resolve_scan
 
 FWMS_ROLES = ("FWMS Operator", "FWMS Supervisor", "FWMS Inventory Control", "System Manager")
+
+
+def as_list(value, field: str = "param") -> list:
+	"""Form posts deliver JSON list params as strings — normalize."""
+	if value is None or value == "":
+		return []
+	if isinstance(value, str):
+		try:
+			value = json.loads(value)
+		except json.JSONDecodeError:
+			frappe.throw(f"Invalid JSON for {field}")
+	if isinstance(value, list):
+		return value
+	if isinstance(value, dict):
+		return [value]
+	frappe.throw(f"Invalid payload for {field}")
 
 
 def require_operator() -> None:

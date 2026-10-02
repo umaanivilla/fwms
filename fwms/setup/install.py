@@ -173,11 +173,18 @@ def default_settings():
 		"Stock Settings", "action_if_quality_inspection_is_rejected", "Warn"
 	)
 
+	# stop ERPNext's install default (INR) leaking into new transactions
+	company = frappe.db.get_value("Company", {"is_group": 0}, "name", order_by="creation")
+	if company:
+		currency = frappe.db.get_value("Company", company, "default_currency")
+		if currency and frappe.db.get_single_value("Global Defaults", "default_currency") != currency:
+			frappe.db.set_single_value("Global Defaults", "default_currency", currency)
+
 	settings = frappe.get_doc("FWMS Settings")
 	dirty = False
 	if not settings.company and frappe.db.exists("Company", {"is_group": 0}):
-		settings.company = frappe.db.get_value("Company", {"is_group": 0}, "name")
-		abbr = frappe.db.get_value("Company", settings.company, "abbr") or "FW"
+		settings.company = company
+		abbr = frappe.db.get_value("Company", company, "abbr") or "FW"
 		settings.site_abbreviation = abbr
 		dirty = True
 	if dirty:

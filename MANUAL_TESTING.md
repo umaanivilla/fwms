@@ -34,6 +34,12 @@ Orders — your floor may already have open tasks if they weren't consumed.
 
 > Tip: if a queue you need is empty, each section says how to create its input.
 
+> **After any fwms app update:** the RF terminal is a PWA — do one **hard
+> refresh** (Ctrl+Shift+R, or DevTools → Application → Clear site data) the
+> first time you open `/rf` after an update, so the browser drops the cached
+> JS. Asset URLs carry a version query now, so this is only needed when
+> moving from a pre-versioning checkout.
+
 ---
 
 ## 1. RF PIN login

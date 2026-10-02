@@ -6,7 +6,7 @@ from __future__ import annotations
 import frappe
 from frappe.utils import flt
 
-from fwms.api.rf_common import current_worker, require_operator
+from fwms.api.rf_common import as_list, current_worker, require_operator
 from fwms.events import emit
 from fwms.utils import get_warehouse_for_type as _zone_warehouse
 
@@ -47,6 +47,7 @@ def process_return(delivery_note: str, lines: list[dict]) -> dict:
 	"""
 	require_operator()
 	worker = current_worker()
+	lines = as_list(lines, "lines")
 	dn = frappe.get_doc("Delivery Note", delivery_note)
 	if dn.docstatus != 1:
 		frappe.throw(f"Delivery Note {delivery_note} is not submitted")

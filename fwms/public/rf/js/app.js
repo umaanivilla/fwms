@@ -218,11 +218,20 @@ async function screenReceive() {
 				if (res.type !== 'po') throw new Error(`Not a Purchase Order (${res.type})`);
 				const info = await api('fwms.api.rf_receiving.po_info', { po: res.name });
 				st.po = info; st.lines = [];
-				toast(`${info.items.length} item(s) pending`, 'ok');
+				if (info.fully_received) toast('PO fully received — nothing pending', 'err');
+				else toast(`${info.pending_count} item(s) pending`, 'ok');
 				screenReceive();
 			} catch (e) { toast(e.message, 'err'); input.select(); }
 		});
 		body.push(scan);
+	} else if (st.po.fully_received) {
+		body.push(el('div', { class: 'card' },
+			row(`PO ${st.po.po}`, st.po.supplier_name, el('button', { class: 'pill', onclick: () => { st.po = null; st.lines = []; screenReceive(); } }, 'Close')),
+			el('div', { class: 'small' }, `Nothing pending — this PO is fully received (status: ${st.po.status || 'Completed'}). Scan a different PO.`),
+		));
+		body.push(el('button', { class: 'big secondary', onclick: () => { st.po = null; st.lines = []; screenReceive(); } }, 'Scan another PO'));
+		render(topbar('Receiving'), ...body);
+		return;
 	} else {
 		body.push(el('div', { class: 'card' },
 			row(`PO ${st.po.po}`, st.po.supplier_name, el('button', { class: 'pill', onclick: () => { st.po = null; st.lines = []; screenReceive(); } }, 'Close')),

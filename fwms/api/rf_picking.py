@@ -6,7 +6,7 @@ from __future__ import annotations
 import frappe
 from frappe.utils import flt
 
-from fwms.api.rf_common import current_worker, require_operator
+from fwms.api.rf_common import as_list, current_worker, require_operator
 from fwms.events import emit
 from fwms.tasks import claim_next, complete_task, start_task
 from fwms.utils import get_next_lpn_barcode
@@ -109,6 +109,7 @@ def pick_confirm(task: str, qty: float, cart: str, scanned_serials: list[str] | 
 	require_operator()
 	worker = current_worker()
 	qty = flt(qty)
+	scanned_serials = as_list(scanned_serials, "scanned_serials")
 	if qty <= 0:
 		frappe.throw("Pick qty must be positive")
 

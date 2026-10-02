@@ -6,7 +6,7 @@ from __future__ import annotations
 import frappe
 from frappe.utils import flt
 
-from fwms.api.rf_common import current_worker, require_operator
+from fwms.api.rf_common import as_list, current_worker, require_operator
 from fwms.events import emit
 from fwms.fwms.doctype.fwms_bin.fwms_bin import get_bin_stock
 from fwms.utils import get_warehouse_for_type
@@ -55,6 +55,7 @@ def submit(bin_name: str, counted: list[dict], task: str | None = None) -> dict:
 	"""
 	require_operator()
 	worker = current_worker()
+	counted = as_list(counted, "counted")
 	bin_doc = frappe.get_doc("FWMS Bin", bin_name)
 	expected = get_bin_stock(bin_name)
 	counted = _enrich_batches(counted, expected, frappe.db.get_value("FWMS Zone", bin_doc.zone, "warehouse"))
