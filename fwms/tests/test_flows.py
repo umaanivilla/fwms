@@ -31,13 +31,14 @@ class TestCycleCount(FrappeTestCase):
 		]
 		out = rf_count.submit(bin_name=bin_name, counted=counted, task=None)
 
-		self.assertEqual(out["variance"], -1)
+		# one unit short per stocked line
+		self.assertEqual(out["variance"], -len(expected))
 		self.assertTrue(out["stock_reconciliation"], "variance must raise an SR draft")
 		sr = frappe.get_doc("Stock Reconciliation", out["stock_reconciliation"])
 		self.assertEqual(sr.docstatus, 0, "SR stays draft for Inventory Control approval")
 
 		bin_doc = frappe.get_doc("FWMS Bin", bin_name)
-		self.assertEqual(bin_doc.last_count_variance, -1)
+		self.assertEqual(bin_doc.last_count_variance, -len(expected))
 		self.assertTrue(bin_doc.last_counted_on)
 		self.assertLess(bin_doc.last_count_accuracy, 100)
 

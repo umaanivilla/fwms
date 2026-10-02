@@ -129,6 +129,9 @@ def on_packing_slip_submit(doc, method=None):
 
 
 def on_stock_reconciliation_submit(doc, method=None):
+	from fwms.api.rf_count import apply_count_to_lpns_for_sr
+
+	apply_count_to_lpns_for_sr(doc)
 	emit(
 		"Inventory Control",
 		f"Stock Reconciliation {doc.name} posted",

@@ -6,11 +6,11 @@ import frappe
 from werkzeug.wrappers import Response
 
 SERVICE_WORKER_JS = """// FWMS RF offline shell
-const CACHE = 'fwms-rf-v2';
+const CACHE = 'fwms-rf-v3';
 const SHELL = [
   '/rf',
-  '/assets/fwms/rf/css/rf.css?v=20261002b',
-  '/assets/fwms/rf/js/app.js?v=20261002b',
+  '/assets/fwms/rf/css/rf.css?v=20261002c',
+  '/assets/fwms/rf/js/app.js?v=20261002c',
 ];
 self.addEventListener('install', (e) => {
   e.waitUntil(caches.open(CACHE).then((c) => c.addAll(SHELL)).then(() => self.skipWaiting()));

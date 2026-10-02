@@ -264,12 +264,14 @@ def check_replenish_confirm():
 		)
 		if not task:
 			return "no open replenish tasks (run check_replenish first)"
-		sources = rf_replenish.source_bins(item=frappe.db.get_value("FWMS Task", task[0], "item"))
+		item = frappe.db.get_value("FWMS Task", task[0], "item")
+		sources = rf_replenish.source_bins(item=item)
 		if not sources:
-			return "no bulk source stock"
+			return f"no bulk source stock for {item}"
+		task_qty = frappe.db.get_value("FWMS Task", task[0], "qty")
 		return rf_replenish.confirm(
 			task=task[0], from_bin=sources[0]["bin"],
-			qty=frappe.db.get_value("FWMS Task", task[0], "qty"),
+			qty=min(task_qty, sources[0]["qty"]),
 			batch_no=sources[0]["batch_no"] or "",
 		)
 
@@ -304,3 +306,64 @@ def debug_commit_currency():
 			raise
 
 	return _run(fn)
+
+
+def approve_pending_srs():
+	"""Submit draft Stock Reconciliations (Inventory Control action) — posts
+	ledger corrections and realigns FWMS LPN truth via the on_submit hook."""
+	frappe.set_user("Administrator")
+	out = []
+	for name in frappe.get_all("Stock Reconciliation", filters={"docstatus": 0}, pluck="name"):
+		try:
+			sr = frappe.get_doc("Stock Reconciliation", name)
+			sr.submit()
+			out.append({"sr": name, "status": "submitted"})
+		except Exception as exc:
+			frappe.db.rollback()
+			out.append({"sr": name, "status": f"fail: {str(exc)[:80]}"})
+	frappe.db.commit()
+	return out
+
+
+def topup_bulk(item: str = "BATT-20", qty: int = 20):
+	"""Demo healer: material-receipt `qty` of an item into Bulk Storage and
+	onto its bulk tote (serials auto-numbered for serialized items)."""
+	from fwms.api.rf_receiving import next_serials
+
+	frappe.set_user("Administrator")
+	bulk_wh = "Bulk Storage - FW"
+	se = frappe.new_doc("Stock Entry")
+	se.company = frappe.db.get_single_value("FWMS Settings", "company")
+	se.stock_entry_type = "Material Receipt"
+	row = se.append("items", {})
+	row.item_code = item
+	row.qty = qty
+	row.t_warehouse = bulk_wh
+	row.basic_rate = frappe.db.get_value("Item", item, "standard_rate")
+	row.use_serial_batch_fields = 1
+	serials = None
+	if frappe.db.get_value("Item", item, "has_serial_no"):
+		serials = next_serials(item_code=item, qty=qty)["serials"]
+		row.serial_no = "\n".join(serials)
+	if frappe.db.get_value("Item", item, "has_batch_no"):
+		row.batch_no = f"TOPUP-{item}"
+	se.insert(ignore_permissions=True)
+	se.submit()
+
+	lpn_name = None
+	for lpn in frappe.get_all("FWMS LPN", filters={"zone": "Bulk Storage", "status": "In Bin"}, pluck="name"):
+		if frappe.get_all("FWMS LPN Item", filters={"parent": lpn, "item": item}, limit=1):
+			lpn_name = lpn
+			break
+	if not lpn_name:
+		lpn_name = f"TOPUP-{item}"
+		frappe.get_doc({
+			"doctype": "FWMS LPN", "barcode": lpn_name, "lpn_type": "Tote",
+			"status": "In Bin", "zone": "Bulk Storage", "bin": "BULK-A05-R2-B4",
+		}).insert(ignore_permissions=True)
+	from fwms.fwms.doctype.fwms_lpn.fwms_lpn import add_contents
+
+	add_contents(lpn_name, item, qty, batch_no=None if not serials else None)
+	frappe.db.commit()
+	return {"stock_entry": se.name, "lpn": lpn_name, "serials": len(serials) if serials else 0}
+

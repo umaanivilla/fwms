@@ -137,18 +137,26 @@ function topbar(subtitle) {
 			el('div', { class: 'name' }, S.worker ? `${S.worker.worker_code} · ${S.worker.person_name}` : 'FWMS RF'),
 			el('div', { class: 'sub' }, subtitle || ''),
 		),
-		el('button', { onclick: () => { location.hash = '#menu'; } }, 'Menu'),
 		el('button', {
-		onclick: async () => {
-			try { await api('fwms.api.rf_auth.logout'); } catch (e) { /* ignore */ }
-			localStorage.removeItem('fwms.worker');
-			S.worker = null;
-			CSRF = null; // session rotated on logout
-			location.hash = '#login';
+			class: 'home-btn', title: 'Home', 'aria-label': 'Home',
+			onclick: () => { location.hash = '#menu'; },
 		},
+			el('span', { class: 'home-ico', 'aria-hidden': 'true' }, HOME_SVG),
+		),
+		el('button', {
+			class: 'logout-btn',
+			onclick: async () => {
+				try { await api('fwms.api.rf_auth.logout'); } catch (e) { /* ignore */ }
+				localStorage.removeItem('fwms.worker');
+				S.worker = null;
+				CSRF = null; // session rotated on logout
+				location.hash = '#login';
+			},
 		}, 'Logout'),
 	);
 }
+
+const HOME_SVG = '<svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11.5 12 4l9 7.5"/><path d="M5.5 10.5V20h13v-9.5"/><path d="M10 20v-5.5h4V20"/></svg>';
 
 function render(topbarEl, ...body) {
 	app.replaceChildren();
@@ -290,20 +298,66 @@ function screenReceiveItem() {
 	const line = S.receive.lines.find((l) => l.item_code === item.item_code) || { item_code: item.item_code, qty: 0, qc: 'Pass' };
 	if (!S.receive.lines.includes(line)) S.receive.lines.push(line);
 
+	const rerender = () => screenReceiveItem();
+
 	const qty = el('input', { type: 'number', inputmode: 'decimal', class: 'qty-input', value: String(line.qty || item.pending_qty) });
-	qty.addEventListener('input', () => { line.qty = parseFloat(qty.value) || 0; });
+	qty.addEventListener('change', () => {
+		const n = parseFloat(qty.value) || 0;
+		line.qty = n;
+		if (item.has_serial_no) {
+			line.serials = (line.serials || []).slice(0, Math.max(0, Math.round(n)));
+			rerender();
+		}
+	});
 	const batch = el('input', { type: 'text', class: 'qty-input mono', placeholder: item.has_batch_no ? 'Scan batch (blank = auto)' : '—', value: line.batch_no || '', disabled: item.has_batch_no ? null : 'disabled' });
 	batch.addEventListener('input', () => { line.batch_no = batch.value.trim() || null; });
-	const serials = el('div', { class: 'small mono', style: 'min-height:1.2em' }, (line.serials || []).join(' · '));
-	const serialScan = item.has_serial_no ? scanCard('Scan serials', 'SN-…', async (val, input) => {
+
+	// serials: one row per unit; scan fills the next row; Auto generates the
+	// next sequential block (SN-{ITEM}-00001 style) from the server
+	let serialScan = null, serialTable = null;
+	if (item.has_serial_no) {
+		const need = Math.max(0, Math.round(line.qty || 0));
 		line.serials = line.serials || [];
-		if (line.serials.includes(val)) { toast('Serial already scanned', 'err'); return input.select(); }
-		if (line.serials.length >= (line.qty || 0)) return toast('More serials than qty — raise qty first', 'err');
-		line.serials.push(val);
-		serials.textContent = line.serials.join(' · ');
-		toast(`Serial ${line.serials.length}/${line.qty}`, 'ok');
-		input.select();
-	}) : null;
+
+		const rowsEl = el('div', { class: 'serial-rows' });
+		const renderRows = () => {
+			rowsEl.replaceChildren(...Array.from({ length: Math.max(need, line.serials.length) }, (_, i) => {
+				const s = line.serials[i];
+				return el('div', { class: `rowline ${s ? '' : 'pending'}`, style: 'padding:5px 0' },
+					el('span', { class: 'small mono' }, `#${i + 1}`),
+					el('span', { class: 'mono', style: 'flex:1;margin-left:8px' }, s || '— scan —'),
+					s ? el('span', { class: 'pill ok' }, '✓') : null,
+				);
+			}));
+		};
+		renderRows();
+		serialTable = el('div', { class: 'card' },
+			el('div', { class: 'section-title' }, `Serials — one per unit (${line.serials.length}/${need})`),
+			rowsEl,
+			el('button', {
+				class: 'big secondary', onclick: async (e) => {
+					e.target.disabled = true;
+					try {
+						if (!(line.qty > 0)) throw new Error('Set the qty first');
+						const res = await api('fwms.api.rf_receiving.next_serials', {
+							item_code: item.item_code, qty: Math.round(line.qty),
+						});
+						line.serials = res.serials.slice(0, Math.round(line.qty));
+						toast(`Generated ${line.serials.length} sequential serials`, 'ok');
+						rerender();
+					} catch (err) { toast(err.message, 'err'); e.target.disabled = false; }
+				},
+			}, '⚡ Auto-generate sequential'),
+		);
+
+		serialScan = scanCard(`Scan serials (${line.serials.length}/${need})`, 'SN-…', async (val, input) => {
+			if (line.serials.includes(val)) { toast('Serial already scanned', 'err'); return input.select(); }
+			if (line.serials.length >= need) { toast(`All ${need} serials scanned`, 'ok'); return input.select(); }
+			line.serials.push(val);
+			toast(`Serial ${line.serials.length}/${need}`, 'ok');
+			rerender();
+		});
+	}
 
 	render(topbar(`Receiving · ${item.item_code}`),
 		el('div', { class: 'card' },
@@ -311,6 +365,7 @@ function screenReceiveItem() {
 			qty, qtyButtons(qty),
 		),
 		batch && item.has_batch_no ? el('div', { class: 'card' }, el('label', { class: 'small' }, 'Batch'), batch) : null,
+		serialTable || '',
 		serialScan || '',
 		el('div', { class: 'card' },
 			el('div', { class: 'section-title' }, 'QC decision'),
@@ -610,40 +665,90 @@ async function screenReplenish() {
 async function screenReplenishDo() {
 	const task = S.repl;
 	if (!task) return go('#replenish');
+	// staged flow state: { from, batch, avail, qty, to }
+	if (!S.replFlow || S.replFlow.task !== task.name) {
+		S.replFlow = { task: task.name, from: null, batch: null, avail: 0, qty: 0, to: null };
+	}
+	const F = S.replFlow;
 	let sources = [];
 	try { sources = await api('fwms.api.rf_replenish.source_bins', { item: task.item }); } catch (e) { /* none */ }
-	const chosen = S.replFrom || null;
 
-	const fromScan = scanCard('Scan bulk bin', (sources[0] && sources[0].bin) || 'BULK-…', async (val, input) => {
+	const body = [el('div', { class: 'card' },
+		row(`Task: ${task.qty} × ${task.item}`, `replenish ${task.to_bin}`,
+			el('span', { class: task.priority === '1-High' ? 'pill err' : 'pill' }, task.priority)),
+	)];
+
+	// stage 1 — source bin
+	if (!F.from) {
+		const fromScan = scanCard('1 · Scan bulk source bin', (sources[0] && sources[0].bin) || 'BULK-…', async (val, input) => {
+			try {
+				const res = await api('fwms.api.rf_common.scan', { barcode: val, screen: 'repl-from' });
+				if (res.type !== 'bin') throw new Error(`Not a bin (${res.type})`);
+				const src = sources.find((s) => s.bin === res.name);
+				if (!src) throw new Error(`No ${task.item} in ${res.name} — scan a bin from the list`);
+				F.from = res.name; F.batch = src.batch_no || ''; F.avail = src.qty;
+				F.qty = Math.min(task.qty, src.qty);
+				toast(`${res.name}: ${src.qty} available`, 'ok');
+				screenReplenishDo();
+			} catch (e) { toast(e.message, 'err'); input.select(); }
+		});
+		if (sources.length) {
+			body.push(el('div', { class: 'card' }, el('div', { class: 'small' }, 'Bulk stock found:'),
+				...sources.map((s) => row(s.bin, `batch ${s.batch_no || '—'}`, el('span', { class: 'qty' }, `${s.qty}`)))));
+		} else {
+			body.push(el('div', { class: 'card' }, el('div', { class: 'small' }, 'No bulk stock of this item — wait for inbound or check FWMS LPN list.')));
+		}
+		body.push(fromScan);
+		render(topbar(`Replenish · step 1 of 3`), ...body);
+		fromScan.focusScan();
+		return;
+	}
+
+	// stage 2 — qty (bounded by availability) + destination scan
+	const src = sources.find((s) => s.bin === F.from) || { batch_no: F.batch, qty: F.avail };
+	const qtyInput = el('input', { type: 'number', inputmode: 'decimal', class: 'qty-input', value: String(F.qty) });
+	qtyInput.addEventListener('input', () => { F.qty = parseFloat(qtyInput.value) || 0; });
+
+	const toScan = scanCard(`2 · Scan destination pick face (task wants ${task.to_bin})`, task.to_bin, async (val, input) => {
 		try {
-			const res = await api('fwms.api.rf_common.scan', { barcode: val, screen: 'repl-from' });
+			const res = await api('fwms.api.rf_common.scan', { barcode: val, screen: 'repl-to' });
 			if (res.type !== 'bin') throw new Error(`Not a bin (${res.type})`);
-			S.replFrom = res.name;
-			toast('Source ok — confirm', 'ok');
+			if (res.name !== task.to_bin) throw new Error(`Wrong bin — task wants ${task.to_bin}`);
+			F.to = res.name;
+			toast('Destination ok — confirm transfer', 'ok');
 		} catch (e) { toast(e.message, 'err'); input.select(); }
 	});
 
-	render(topbar(`Replenish ${task.item}`),
-		el('div', { class: 'card' }, row(`${task.qty} x ${task.item}`, `target ${task.to_bin}`)),
-		sources.length ? el('div', { class: 'card' }, el('div', { class: 'small' }, 'Bulk stock found:'),
-			...sources.map((s) => row(s.bin || s.lpn, `batch ${s.batch_no || '—'}`, el('span', { class: 'qty' }, `${s.qty}`)))) : '',
-		fromScan,
+	body.push(
+		el('div', { class: 'card' },
+			row(`From ${F.from}`, `batch ${src.batch_no || '—'}`, el('span', { class: 'qty' }, `${src.qty} available`)),
+			el('label', { class: 'small' }, `Move qty (max ${Math.min(task.qty, src.qty)})`), qtyInput,
+			qtyButtons(qtyInput),
+			el('button', {
+				class: 'pill', style: 'font-size:0.9rem;cursor:pointer',
+				onclick: () => { F.from = null; F.batch = null; F.avail = 0; F.qty = 0; F.to = null; screenReplenishDo(); },
+			}, '↺ change source'),
+		),
+		toScan,
 		el('button', {
 			class: 'primary good', onclick: async (e) => {
 				e.target.disabled = true;
 				try {
-					const from = S.replFrom || (sources[0] && sources[0].bin);
-					if (!from) throw new Error('Scan a source bin first');
-					const batch = (sources.find((s) => s.bin === from) || {}).batch_no || '';
-					const out = await api('fwms.api.rf_replenish.confirm', { task: task.name, from_bin: from, qty: task.qty, batch_no: batch || '' });
-					toast(`Replenished via ${out.stock_entry}`, 'ok');
-					S.repl = null; S.replFrom = null;
+					if (!F.to) throw new Error(`Scan destination ${task.to_bin} first`);
+					if (!(F.qty > 0)) throw new Error('Move qty must be positive');
+					if (F.qty > src.qty) throw new Error(`Only ${src.qty} in ${F.from}`);
+					const out = await api('fwms.api.rf_replenish.confirm', {
+						task: task.name, from_bin: F.from, qty: F.qty, batch_no: F.batch || '',
+					});
+					toast(`Moved ${F.qty} × ${task.item} → ${F.to} (${out.stock_entry})`, 'ok');
+					S.repl = null; S.replFlow = null;
 					go('#replenish');
 				} catch (err) { toast(err.message, 'err'); e.target.disabled = false; }
 			},
-		}, 'Confirm transfer'),
+		}, `Confirm · move ${F.qty} → ${task.to_bin}`),
 	);
-	fromScan.focusScan();
+	render(topbar('Replenishment · step 2 of 3'), ...body);
+	toScan.focusScan();
 }
 
 // ------------------------------------------------ load & ship

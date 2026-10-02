@@ -197,6 +197,28 @@ def commit_receipt(po: str, lpn_barcode: str | None, lines: list[dict]) -> dict:
 	return {"purchase_receipt": pr.name, "lpn": lpn.name, "status": "received"}
 
 
+@frappe.whitelist()
+def next_serials(item_code: str, qty: int) -> dict:
+	"""Next N sequential serial codes for an item (SN-{ITEM}-00001 style),
+	skipping any that already exist. Does NOT create them — they are created
+	when the Purchase Receipt submits."""
+	qty = min(int(qty), 500)
+	prefix = f"SN-{item_code}-"
+	existing = frappe.get_all(
+		"Serial No",
+		filters={"item_code": item_code, "name": ("like", f"{prefix}%")},
+		pluck="name",
+	)
+	max_n = 0
+	for name in existing:
+		try:
+			max_n = max(max_n, int(name[len(prefix):]))
+		except ValueError:
+			continue
+	serials = [f"{prefix}{n:05d}" for n in range(max_n + 1, max_n + 1 + qty)]
+	return {"item_code": item_code, "serials": serials}
+
+
 def _ensure_batch(item: str, batch_no: str) -> str:
 	"""RF may scan a batch that isn't in the system yet — create it."""
 	if not frappe.db.exists("Batch", batch_no):

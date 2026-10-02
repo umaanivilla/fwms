@@ -62,12 +62,15 @@ def submit(bin_name: str, counted: list[dict], task: str | None = None) -> dict:
 
 	variances = _diff(expected, counted)
 
-	# FWMS-side truth: LPN contents in this bin are rewritten to the counted qty
-	_apply_count_to_lpns(bin_name, counted)
-
+	# LPN contents are NOT rewritten here — they realign when the Stock
+	# Reconciliation is submitted (apply_count_to_lpns_for_sr), so FWMS truth
+	# and the ERP ledger never diverge between count and approval.
 	sr_name = None
 	if variances:
 		sr_name = _make_stock_reconciliation(bin_doc, counted, worker, task)
+	else:
+		# clean count: nothing to approve, LPN truth already matches
+		_apply_count_to_lpns(bin_name, counted)
 
 	total_expected = sum(flt(r["qty"]) for r in expected)
 	total_counted = sum(flt(r["qty"]) for r in counted)
@@ -121,6 +124,19 @@ def _diff(expected: list[dict], counted: list[dict]) -> list[dict]:
 		if abs(diff) > 1e-9:
 			variances.append({"item": k[0], "batch_no": k[1], "variance": diff})
 	return variances
+
+
+def apply_count_to_lpns_for_sr(sr_doc) -> None:
+	"""SR on_submit hook: realign FWMS LPN contents in the counted bin with
+	the approved ledger quantities."""
+	bin_name = getattr(sr_doc, "fwms_bin", None)
+	if not bin_name:
+		return
+	counted = [
+		{"item": r.item_code, "qty": flt(r.qty), "batch_no": r.batch_no}
+		for r in sr_doc.items or []
+	]
+	_apply_count_to_lpns(bin_name, counted)
 
 
 def _apply_count_to_lpns(bin_name: str, counted: list[dict]) -> None:
