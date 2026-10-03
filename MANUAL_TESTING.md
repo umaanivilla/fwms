@@ -1,5 +1,21 @@
 # FWMS — Manual Test Script
 
+## Starting the system after a computer restart
+
+MariaDB and Redis auto-start with WSL (systemd). Only the bench needs starting:
+
+```bash
+bash ~/frappe-bench/start-fwms.sh     # safe to run any time; idempotent
+```
+
+…or simply `cd ~/frappe-bench && bench start` (keep the terminal open). Wait
+for the URL banner, then reload the browser. To auto-start at Windows logon,
+create a Task Scheduler task (run once, as your user, at logon):
+
+```
+wsl.exe -d Ubuntu -u uma -- bash -lc "cd /home/uma/frappe-bench && nohup bash start-fwms.sh >/tmp/fwms-start.log 2>&1 &"
+```
+
 Walkthrough for a human acceptance pass of the FWMS system on the dev bench.
 Every step lists **exactly what to do** and **what you should see**. Typing a
 value and pressing **Enter** in any RF scan field is equivalent to scanning a
