@@ -249,7 +249,7 @@ def _workers():
 			"default_zone": frappe.db.get_value(
 				"FWMS Zone", {"zone_type": ["Receiving Docks", "Bulk", "Pick Faces", "Packing", "Shipping Docks"][i % 5]}, "name"
 			),
-			"skills": random.choice([None, "Pick, Pack", "Receive, Putaway", "Count, Replenish"]),
+			"skills": random.choice([None, "Pick, Pack", "Receive, Putaway", "Count, Replenish", "Receive, Quality", "Quality, Scrap"]),
 			"active": 1,
 		})
 		worker.insert(ignore_permissions=True)

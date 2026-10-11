@@ -21,6 +21,7 @@ CUSTOM_FIELDS = {
 		{"fieldname": "fwms_section", "fieldtype": "Section Break", "label": "FWMS", "collapsible": 1},
 		{"fieldname": "fwms_task", "label": "FWMS Task", "fieldtype": "Link", "options": "FWMS Task", "insert_after": "fwms_section"},
 		{"fieldname": "fwms_worker", "label": "FWMS Worker", "fieldtype": "Link", "options": "FWMS Worker", "insert_after": "fwms_task"},
+		{"fieldname": "fwms_lpn", "label": "FWMS LPN", "fieldtype": "Link", "options": "FWMS LPN", "insert_after": "fwms_worker"},
 	],
 	"Delivery Note": [
 		{"fieldname": "fwms_section", "fieldtype": "Section Break", "label": "FWMS", "collapsible": 1},
@@ -69,6 +70,8 @@ ERP_PERMISSIONS = {
 	},
 	"FWMS Inventory Control": {
 		"Stock Reconciliation": {"create": 1, "read": 1, "write": 1, "submit": 1, "amend": 1},
+		# approving RF scrap drafts (Material Transfer to the Scrap warehouse)
+		"Stock Entry": {"read": 1, "write": 1, "submit": 1},
 	},
 }
 
@@ -89,6 +92,7 @@ def after_migrate():
 	ensure_custom_fields()
 	seed_tariffs()
 	default_settings()
+	ensure_scrap_zone()
 
 
 def ensure_custom_fields():
@@ -172,6 +176,11 @@ def default_settings():
 	frappe.db.set_single_value(
 		"Stock Settings", "action_if_quality_inspection_is_rejected", "Warn"
 	)
+	# RF Quality inspects QC-hold stock after the fact, against the source
+	# PR/DN — lift ERPNext's "inspection must be pre-required on the item" gate
+	frappe.db.set_single_value(
+		"Stock Settings", "allow_to_make_quality_inspection_after_purchase_or_delivery", 1
+	)
 
 	# stop ERPNext's install default (INR) leaking into new transactions
 	company = frappe.db.get_value("Company", {"is_group": 0}, "name", order_by="creation")
@@ -203,7 +212,37 @@ ZONE_DEFS = [
 	("Pick Faces", "Pick Faces", True, 62, 2, 20, 28, "#2ecc71"),
 	("Packing", "Packing", False, 24, 32, 28, 12, "#e67e22"),
 	("Shipping Docks", "Shipping Docks", False, 54, 32, 28, 12, "#9b59b6"),
+	# off-floor holding zone for scrapped stock (zero-size = not drawn on floor view)
+	("Scrap", "Scrap", True, 0, 0, 0, 0, "#c0392b"),
 ]
+
+
+def ensure_scrap_zone():
+	"""Idempotent Scrap zone for existing sites (new sites get it via ZONE_DEFS)."""
+	settings = frappe.get_doc("FWMS Settings")
+	company = settings.company or frappe.db.get_value("Company", {"is_group": 0}, "name", order_by="creation")
+	if not company:
+		return
+	abbr = settings.site_abbreviation or frappe.db.get_value("Company", company, "abbr") or "FW"
+	scrap_wh = f"Scrap - {abbr}"
+	if not frappe.db.exists("Warehouse", scrap_wh):
+		root = frappe.db.get_value("Warehouse", {"company": company, "is_group": 1}, "name")
+		frappe.get_doc({
+			"doctype": "Warehouse",
+			"warehouse_name": "Scrap",
+			"company": company,
+			"parent_warehouse": root,
+			"is_group": 0,
+		}).insert(ignore_permissions=True)
+	if not frappe.db.exists("FWMS Zone", "Scrap"):
+		frappe.get_doc({
+			"doctype": "FWMS Zone",
+			"zone_name": "Scrap",
+			"zone_type": "Scrap",
+			"warehouse": scrap_wh,
+			"is_physical_only": 0,
+			"barcode_prefix": "SCRAP",
+		}).insert(ignore_permissions=True)
 
 
 def setup_company(company_name: str = "FWMS Warehouse Co", abbr: str = "FW", currency: str = "USD"):

@@ -139,3 +139,17 @@ input.qty-input, select.grade {
 /* serial table (receiving) */
 .serial-rows { display: flex; flex-direction: column; max-height: 40vh; overflow-y: auto; }
 .serial-rows .rowline.pending { opacity: 0.55; }
+
+/* suggestion dropdowns */
+.suggest-list {
+	position: absolute; top: calc(100% + 4px); left: 0; right: 0;
+	background: var(--panel2); border: 1px solid var(--line); border-radius: 12px;
+	max-height: 260px; overflow-y: auto; z-index: 40;
+	box-shadow: 0 8px 28px rgba(0, 0, 0, 0.55);
+}
+.suggest-item { padding: 10px 14px; cursor: pointer; border-bottom: 1px solid var(--line); }
+.suggest-item:last-child { border-bottom: 0; }
+.suggest-item.hi, .suggest-item:active { background: var(--accent); color: #1c1500; }
+.suggest-item.hi .suggest-desc, .suggest-item:active .suggest-desc { color: #4a3d10; }
+.suggest-label { font-weight: 600; font-size: 1.02rem; }
+.suggest-desc { color: var(--muted); font-size: 0.8rem; margin-top: 1px; }

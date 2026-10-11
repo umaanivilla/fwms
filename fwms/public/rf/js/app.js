@@ -84,6 +84,8 @@ const S = {
 	returns: { dn: null, lines: [] },
 	pack: { cart: null, dn: null },
 	load: { dock: null },
+	quality: { task: null, results: [] },
+	scrap: { lpn: null, info: null, lines: [], reason: 'Damaged', held: null },
 };
 
 // ---------------------------------------------------------------- components
@@ -101,6 +103,61 @@ function scanCard(label, placeholder, onScan, value = '') {
 	const card = el('div', { class: 'card' }, el('label', { class: 'small', style: 'text-transform:uppercase;letter-spacing:.06em' }, label), input);
 	card.focusScan = () => { input.focus(); input.select(); };
 	card.setLabel = (t) => { label = t; };
+	return card;
+}
+
+// suggest card: scan input with a dropdown of system suggestions.
+// suggest: {context: 'po'|'bin'|'lpn'|'item'|'dock'|'dn'|'cart'|'packed_cart'}
+//        or {items: [{value,label,desc}]}, optional {filter: fn(rows)->rows}
+function suggestCard(label, placeholder, onScan, value = '', suggest = null) {
+	const card = scanCard(label, placeholder, onScan, value);
+	if (!suggest) return card;
+	const input = card.querySelector('input');
+	const list = el('div', { class: 'suggest-list hidden' });
+	card.style.position = 'relative';
+	card.append(list);
+
+	let rows = [], hi = -1, deb = null;
+	const hide = () => { list.classList.add('hidden'); hi = -1; };
+	const renderList = () => {
+		list.replaceChildren(...rows.map((r, i) => el('div', {
+			class: `suggest-item ${i === hi ? 'hi' : ''}`,
+			onmousedown: (e) => { e.preventDefault(); pick(r); },
+		},
+			el('div', { class: 'suggest-label mono' }, r.label),
+			r.desc ? el('div', { class: 'suggest-desc' }, r.desc) : null,
+		)));
+		list.classList.toggle('hidden', !rows.length);
+	};
+	const pick = (r) => { hide(); input.value = r.value; onScan(r.value, input); };
+	const load = async () => {
+		const txt = input.value.trim();
+		try {
+			if (suggest.items) {
+				rows = suggest.items.filter((r) => !txt || r.value.toLowerCase().includes(txt.toLowerCase()));
+			} else {
+				rows = await api('fwms.api.rf_suggest.suggest', { context: suggest.context, txt });
+			}
+			if (suggest.filter) rows = rows.filter(suggest.filter);
+		} catch (e) { rows = []; }
+		hi = -1; renderList();
+	};
+	input.addEventListener('input', () => {
+		clearTimeout(deb);
+		deb = setTimeout(load, suggest.items ? 0 : 220);
+	});
+	input.addEventListener('focus', () => load());
+	input.addEventListener('keydown', (e) => {
+		if (list.classList.contains('hidden') || !rows.length) return;
+		if (e.key === 'ArrowDown') { e.preventDefault(); hi = (hi + 1) % rows.length; renderList(); }
+		else if (e.key === 'ArrowUp') { e.preventDefault(); hi = (hi - 1 + rows.length) % rows.length; renderList(); }
+	});
+	// Enter: a highlighted suggestion wins over the typed text
+	input.addEventListener('keydown', (e) => {
+		if (e.key === 'Enter' && hi >= 0 && rows[hi]) { e.preventDefault(); e.stopImmediatePropagation(); pick(rows[hi]); }
+		else if (e.key === 'Escape') hide();
+	});
+	input.addEventListener('blur', () => setTimeout(hide, 180));
 	return card;
 }
 
@@ -141,7 +198,7 @@ function topbar(subtitle) {
 			class: 'home-btn', title: 'Home', 'aria-label': 'Home',
 			onclick: () => { location.hash = '#menu'; },
 		},
-			el('span', { class: 'home-ico', 'aria-hidden': 'true' }, HOME_SVG),
+			homeIco(),
 		),
 		el('button', {
 			class: 'logout-btn',
@@ -157,6 +214,14 @@ function topbar(subtitle) {
 }
 
 const HOME_SVG = '<svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11.5 12 4l9 7.5"/><path d="M5.5 10.5V20h13v-9.5"/><path d="M10 20v-5.5h4V20"/></svg>';
+
+// el() inserts strings as text nodes, so the icon's markup must go in via
+// innerHTML — otherwise the SVG source renders as literal text.
+function homeIco() {
+	const span = el('span', { class: 'home-ico', 'aria-hidden': 'true' });
+	span.innerHTML = HOME_SVG;
+	return span;
+}
 
 function render(topbarEl, ...body) {
 	app.replaceChildren();
@@ -210,6 +275,8 @@ async function screenMenu() {
 		menuButton('Replenish', '♻️', () => go('#replenish')),
 		menuButton('Load / Ship', '🚛', () => go('#loadship')),
 		menuButton('Returns', '↩️', () => go('#returns')),
+		menuButton('Quality', '🧪', () => go('#quality')),
+		menuButton('Scrap', '🗑️', () => go('#scrap')),
 	));
 }
 
@@ -220,7 +287,7 @@ async function screenReceive() {
 	const body = [];
 
 	if (!st.po) {
-		const scan = scanCard('Scan Purchase Order', 'PO-…', async (val, input) => {
+		const scan = suggestCard('Scan Purchase Order', 'PO-…', async (val, input) => {
 			try {
 				const res = await api('fwms.api.rf_common.scan', { barcode: val, screen: 'receive' });
 				if (res.type !== 'po') throw new Error(`Not a Purchase Order (${res.type})`);
@@ -230,7 +297,7 @@ async function screenReceive() {
 				else toast(`${info.pending_count} item(s) pending`, 'ok');
 				screenReceive();
 			} catch (e) { toast(e.message, 'err'); input.select(); }
-		});
+		}, '', { context: 'po' });
 		body.push(scan);
 	} else if (st.po.fully_received) {
 		body.push(el('div', { class: 'card' },
@@ -279,13 +346,13 @@ async function screenReceive() {
 	}
 	render(topbar('Receiving'), ...body);
 	if (st.po) {
-		const lpnScan = scanCard('Scan tote/pallet LPN (optional)', 'LPN-… or CART-…', async (val, input) => {
+		const lpnScan = suggestCard('Scan tote/pallet LPN (optional)', 'LPN-… or CART-…', async (val, input) => {
 			try {
 				const res = await api('fwms.api.rf_common.scan', { barcode: val, screen: 'receive-lpn' });
 				if (res.type !== 'lpn') throw new Error(`Not an LPN (${res.type})`);
 				st.lpn = res.name; toast(`Receiving into ${res.name}`, 'ok');
 			} catch (e) { toast(e.message, 'err'); input.select(); }
-		});
+		}, '', { context: 'lpn' });
 		body.splice(1, 0, lpnScan);
 		app.querySelector('.screen').replaceChildren(...body);
 		lpnScan.focusScan();
@@ -405,7 +472,7 @@ async function screenPutawayDo() {
 	try { suggestion = await api('fwms.api.rf_putaway.suggest_bin', { lpn: task.lpn }); } catch (e) { /* no bin */ }
 	const suggested = suggestion ? suggestion.bin : null;
 
-	const scan = scanCard('Scan LPN', task.lpn || 'LPN-…', async (val, input) => {
+	const scan = suggestCard('Scan LPN', task.lpn || 'LPN-…', async (val, input) => {
 		try {
 			const res = await api('fwms.api.rf_common.scan', { barcode: val, screen: 'putaway-lpn' });
 			if (res.type !== 'lpn') throw new Error(`Not an LPN (${res.type})`);
@@ -413,9 +480,9 @@ async function screenPutawayDo() {
 			toast('LPN confirmed — scan bin', 'ok');
 			binScan.focusScan();
 		} catch (e) { toast(e.message, 'err'); input.select(); }
-	});
+	}, '', { context: 'lpn' });
 
-	const binScan = scanCard(`Scan bin${suggested ? ` (suggested: ${suggested})` : ''}`, suggested || 'BULK-…', async (val, input) => {
+	const binScan = suggestCard(`Scan bin${suggested ? ` (suggested: ${suggested})` : ''}`, suggested || 'BULK-…', async (val, input) => {
 		try {
 			const res = await api('fwms.api.rf_common.scan', { barcode: val, screen: 'putaway-bin' });
 			if (res.type !== 'bin') throw new Error(`Not a bin (${res.type})`);
@@ -424,7 +491,7 @@ async function screenPutawayDo() {
 			toast(`Put away ${out.lpn} → ${out.bin}`, 'ok');
 			go('#putaway');
 		} catch (e) { toast(e.message, 'err'); input.select(); }
-	});
+	}, '', { context: 'bin' });
 
 	render(topbar('Putaway · directed'),
 		el('div', { class: 'card' }, row(task.lpn, suggestion ? suggestion.reason : 'no suggestion yet')),
@@ -450,9 +517,9 @@ async function screenPick() {
 				} catch (err) { toast(err.message, 'err'); e.target.disabled = false; }
 			},
 		}, 'Claim next pick task'));
-		body.push(scanCard('Scan cart LPN (optional)', 'CART-…', async (val, input) => {
+		body.push(suggestCard('Scan cart LPN (optional)', 'CART-…', async (val, input) => {
 			S.pick.cart = val; toast(`Cart ${val}`, 'ok');
-		}, S.pick.cart || ''));
+		}, S.pick.cart || '', { context: 'cart' }));
 	} else {
 		go('#pick-do'); return;
 	}
@@ -470,32 +537,32 @@ async function screenPickDo() {
 	const qty = el('input', { type: 'number', inputmode: 'decimal', class: 'qty-input', value: String(detail.qty) });
 	const serials = detail.serials_expected || [];
 
-	const binScan = scanCard('1 · Scan bin', detail.from_bin || 'BIN-…', async (val, input) => {
+	const binScan = suggestCard('1 · Scan bin', detail.from_bin || 'BIN-…', async (val, input) => {
 		try {
 			const res = await api('fwms.api.rf_common.scan', { barcode: val, screen: 'pick-bin' });
 			if (res.type !== 'bin') throw new Error(`Not a bin (${res.type})`);
 			if (detail.from_bin && res.name !== detail.from_bin) toast(`Wrong bin — task wants ${detail.from_bin}`, 'err');
 			else { stage = 'item'; S.pick.stage = stage; toast('Bin ok — scan item', 'ok'); itemScan.focusScan(); }
 		} catch (e) { toast(e.message, 'err'); input.select(); }
-	}, detail.from_bin || '');
+	}, detail.from_bin || '', { context: 'bin' });
 
-	const itemScan = scanCard('2 · Scan item', detail.item || 'ITEM…', async (val, input) => {
+	const itemScan = suggestCard('2 · Scan item', detail.item || 'ITEM…', async (val, input) => {
 		try {
 			const res = await api('fwms.api.rf_common.scan', { barcode: val, screen: 'pick-item' });
 			if (res.type !== 'item') throw new Error(`Not an item (${res.type})`);
 			if (detail.item && res.name !== detail.item) throw new Error(`Wrong item — task wants ${detail.item}`);
 			S.pick.stage = 'confirm'; toast('Item ok', 'ok');
 		} catch (e) { toast(e.message, 'err'); input.select(); }
-	}, detail.item || '');
+	}, detail.item || '', { context: 'item' });
 
-	const serialScan = serials.length ? scanCard('3 · Scan serials', 'SN-…', async (val, input) => {
+	const serialScan = serials.length ? suggestCard('3 · Scan serials', 'SN-…', async (val, input) => {
 		S.pick.serials = S.pick.serials || [];
 		if (!serials.includes(val)) return toast('Serial not expected for this task', 'err');
 		if (S.pick.serials.includes(val)) return toast('Already scanned', 'err');
 		S.pick.serials.push(val);
 		toast(`Serial ${S.pick.serials.length}/${detail.qty}`, 'ok');
 		input.select();
-	}) : null;
+	}, '', { items: serials.map((s) => ({ value: s, label: s, desc: 'expected for this task' })) }) : null;
 
 	const batchNote = detail.batch_no
 		? el('div', { class: 'card' }, el('div', { class: 'small' }, `FEFO batch offered: `), el('b', { class: 'mono' }, detail.batch_no))
@@ -587,7 +654,7 @@ async function screenPackDo() {
 // ------------------------------------------------ count
 
 function screenCount() {
-	const scan = scanCard('Scan bin to count', 'BULK-A01-R02-B03', async (val, input) => {
+	const scan = suggestCard('Scan bin to count', 'BULK-A01-R02-B03', async (val, input) => {
 		try {
 			const res = await api('fwms.api.rf_common.scan', { barcode: val, screen: 'count' });
 			if (res.type !== 'bin') throw new Error(`Not a bin (${res.type})`);
@@ -595,7 +662,7 @@ function screenCount() {
 			S.count = { ...info, counted: (info.expected || []).map((r) => ({ item: r.item, qty: r.qty, batch_no: r.batch_no })) };
 			go('#count-do');
 		} catch (e) { toast(e.message, 'err'); input.select(); }
-	});
+	}, '', { context: 'bin' });
 	render(topbar('Cycle counting'),
 		el('div', { class: 'card' }, el('div', { class: 'small' }, 'Blind by default — expected qty hidden unless the Count Program allows it.')),
 		scan,
@@ -607,7 +674,7 @@ function screenCountDo() {
 	if (!st || !st.bin) return go('#count');
 	const lines = st.counted && st.counted.length ? st.counted : [{ item: '', qty: 0, batch_no: null }];
 
-	const itemScan = scanCard('Scan item (or + to add line)', 'ITEM…', async (val, input) => {
+	const itemScan = suggestCard('Scan item (or + to add line)', 'ITEM…', async (val, input) => {
 		try {
 			const res = await api('fwms.api.rf_common.scan', { barcode: val, screen: 'count-item' });
 			if (res.type !== 'item') throw new Error(`Not an item (${res.type})`);
@@ -617,7 +684,7 @@ function screenCountDo() {
 			toast(`${res.name} — enter qty`, 'ok');
 			screenCountDo();
 		} catch (e) { toast(e.message, 'err'); input.select(); }
-	});
+	}, '', { context: 'item' });
 
 	const cards = st.counted.map((line, idx) => {
 		const qty = el('input', { type: 'number', inputmode: 'decimal', class: 'qty-input', value: String(line.qty || 0) });
@@ -680,7 +747,7 @@ async function screenReplenishDo() {
 
 	// stage 1 — source bin
 	if (!F.from) {
-		const fromScan = scanCard('1 · Scan bulk source bin', (sources[0] && sources[0].bin) || 'BULK-…', async (val, input) => {
+		const fromScan = suggestCard('1 · Scan bulk source bin', (sources[0] && sources[0].bin) || 'BULK-…', async (val, input) => {
 			try {
 				const res = await api('fwms.api.rf_common.scan', { barcode: val, screen: 'repl-from' });
 				if (res.type !== 'bin') throw new Error(`Not a bin (${res.type})`);
@@ -691,7 +758,7 @@ async function screenReplenishDo() {
 				toast(`${res.name}: ${src.qty} available`, 'ok');
 				screenReplenishDo();
 			} catch (e) { toast(e.message, 'err'); input.select(); }
-		});
+		}, '', { context: 'bin', filter: (r) => sources.some((s) => s.bin === r.value) });
 		if (sources.length) {
 			body.push(el('div', { class: 'card' }, el('div', { class: 'small' }, 'Bulk stock found:'),
 				...sources.map((s) => row(s.bin, `batch ${s.batch_no || '—'}`, el('span', { class: 'qty' }, `${s.qty}`)))));
@@ -709,7 +776,7 @@ async function screenReplenishDo() {
 	const qtyInput = el('input', { type: 'number', inputmode: 'decimal', class: 'qty-input', value: String(F.qty) });
 	qtyInput.addEventListener('input', () => { F.qty = parseFloat(qtyInput.value) || 0; });
 
-	const toScan = scanCard(`2 · Scan destination pick face (task wants ${task.to_bin})`, task.to_bin, async (val, input) => {
+	const toScan = suggestCard(`2 · Scan destination pick face (task wants ${task.to_bin})`, task.to_bin, async (val, input) => {
 		try {
 			const res = await api('fwms.api.rf_common.scan', { barcode: val, screen: 'repl-to' });
 			if (res.type !== 'bin') throw new Error(`Not a bin (${res.type})`);
@@ -717,7 +784,7 @@ async function screenReplenishDo() {
 			F.to = res.name;
 			toast('Destination ok — confirm transfer', 'ok');
 		} catch (e) { toast(e.message, 'err'); input.select(); }
-	});
+	}, '', { items: [{ value: task.to_bin, label: task.to_bin, desc: 'task target' }] });
 
 	body.push(
 		el('div', { class: 'card' },
@@ -754,7 +821,7 @@ async function screenReplenishDo() {
 // ------------------------------------------------ load & ship
 
 function screenLoadShip() {
-	const dockScan = scanCard('Scan dock door', 'OUT-01', async (val, input) => {
+	const dockScan = suggestCard('Scan dock door', 'OUT-01', async (val, input) => {
 		try {
 			const res = await api('fwms.api.rf_common.scan', { barcode: val, screen: 'load-dock' });
 			if (res.type !== 'dock') throw new Error(`Not a dock door (${res.type})`);
@@ -762,7 +829,7 @@ function screenLoadShip() {
 			toast(`Dock ${res.name}`, 'ok');
 			go('#load-ship-do');
 		} catch (e) { toast(e.message, 'err'); input.select(); }
-	});
+	}, '', { context: 'dock', filter: (r) => r.desc.startsWith('Outbound') });
 	render(topbar('Load & Ship'), dockScan);
 }
 
@@ -773,7 +840,7 @@ async function screenLoadShipDo() {
 	try { carts = await api('fwms.api.rf_load.loaded_cartoons', { dock_door: dock }); } catch (e) { /* none */ }
 	const staged = S.load.staged || [];
 
-	const cartScan = scanCard('Scan packed carton', 'CART-…', async (val, input) => {
+	const cartScan = suggestCard('Scan packed carton', 'CART-…', async (val, input) => {
 		try {
 			const res = await api('fwms.api.rf_common.scan', { barcode: val, screen: 'load-carton' });
 			if (res.type !== 'lpn') throw new Error(`Not a carton (${res.type})`);
@@ -784,7 +851,7 @@ async function screenLoadShipDo() {
 			input.select();
 			screenLoadShipDo();
 		} catch (e) { toast(e.message, 'err'); input.select(); }
-	});
+	}, '', { context: 'packed_cart' });
 
 	render(topbar(`Loading · ${dock}`),
 		el('div', { class: 'section-title' }, `Staged at Shipping Docks (${carts.length})`),
@@ -809,7 +876,7 @@ async function screenLoadShipDo() {
 // ------------------------------------------------ returns
 
 function screenReturns() {
-	const scan = scanCard('Scan original Delivery Note', 'DN-…', async (val, input) => {
+	const scan = suggestCard('Scan original Delivery Note', 'DN-…', async (val, input) => {
 		try {
 			const res = await api('fwms.api.rf_common.scan', { barcode: val, screen: 'returns' });
 			if (res.type !== 'dn') throw new Error(`Not a Delivery Note (${res.type})`);
@@ -817,7 +884,7 @@ function screenReturns() {
 			S.returns = { dn: info, lines: [] };
 			go('#returns-do');
 		} catch (e) { toast(e.message, 'err'); input.select(); }
-	});
+	}, '', { context: 'dn' });
 	render(topbar('Returns'), scan);
 }
 
@@ -825,7 +892,7 @@ function screenReturnsDo() {
 	const st = S.returns;
 	if (!st || !st.dn) return go('#returns');
 
-	const itemScan = scanCard('Scan returned item', 'ITEM…', async (val, input) => {
+	const itemScan = suggestCard('Scan returned item', 'ITEM…', async (val, input) => {
 		try {
 			const res = await api('fwms.api.rf_common.scan', { barcode: val, screen: 'returns-item' });
 			if (res.type !== 'item') throw new Error(`Not an item (${res.type})`);
@@ -836,7 +903,7 @@ function screenReturnsDo() {
 			toast('Enter qty + grade', 'ok');
 			screenReturnsDo();
 		} catch (e) { toast(e.message, 'err'); input.select(); }
-	});
+	}, '', { context: 'item' });
 
 	const cards = st.lines.map((line, idx) => {
 		const qty = el('input', { type: 'number', class: 'qty-input', value: String(line.qty || 0) });
@@ -869,6 +936,176 @@ function screenReturnsDo() {
 	itemScan.focusScan();
 }
 
+// ------------------------------------------------ quality (QC Hold disposition)
+
+async function screenQuality() {
+	const tasks = await api('fwms.api.rf_quality.open_tasks').catch(() => []);
+	const body = [el('div', { class: 'section-title' }, 'Quality queue — QC Hold')];
+	if (!tasks.length) body.push(el('div', { class: 'card' }, el('div', { class: 'small' }, 'No QC-hold inspections pending 🎉')));
+	for (const task of tasks) {
+		body.push(el('div', { class: 'card', style: 'cursor:pointer', onclick: () => { S.quality.task = task; go('#quality-do'); } },
+			row(`${task.lpn || 'LPN?'}`, `${task.qty || ''} units · ${task.status}`,
+				el('span', { class: task.priority === '1-High' ? 'pill err' : 'pill' }, task.priority))));
+	}
+	render(topbar('Quality'), ...body);
+}
+
+async function screenQualityDo() {
+	const task = S.quality.task;
+	if (!task) return go('#quality');
+	let detail;
+	try {
+		detail = await api('fwms.api.rf_quality.task_detail', { task: task.name });
+	} catch (e) { toast(e.message, 'err'); return go('#quality'); }
+
+	const st = S.quality;
+	st.results = detail.items.map((it) => ({
+		item_code: it.item_code, qty: it.qty, batch_no: it.batch_no || '', verdict: 'Pass',
+	}));
+
+	const rerender = () => {
+		const cards = st.results.map((line) => {
+			const qty = el('input', { type: 'number', value: String(line.qty), min: '0', step: '1' });
+			qty.addEventListener('input', () => { line.qty = parseFloat(qty.value) || 0; });
+			return el('div', { class: 'card' },
+				row(line.item_code, line.batch_no ? `batch ${line.batch_no}` : '',
+					el('span', { class: `pill ${line.verdict === 'Pass' ? 'ok' : 'err'}` }, line.verdict)),
+				qty, qtyButtons(qty),
+				el('div', { style: 'display:flex;gap:10px' },
+					el('button', {
+						class: `pill ${line.verdict === 'Pass' ? 'ok' : ''}`, style: 'flex:1;cursor:pointer',
+						onclick: () => { line.verdict = 'Pass'; rerender(); },
+					}, '✔ Pass'),
+					el('button', {
+						class: `pill ${line.verdict === 'Fail' ? 'err' : ''}`, style: 'flex:1;cursor:pointer',
+						onclick: () => { line.verdict = 'Fail'; rerender(); },
+					}, '✖ Fail'),
+				),
+			);
+		});
+		render(topbar(`Quality · ${detail.lpn}`),
+			el('div', { class: 'card' }, row(detail.lpn,
+				`${detail.source_doctype || ''} ${detail.source_name || ''} · ${detail.zone || ''}`)),
+			...cards,
+			el('button', {
+				class: 'primary good', onclick: async (e) => {
+					e.target.disabled = true;
+					try {
+						const out = await api('fwms.api.rf_quality.inspect', {
+							lpn: detail.lpn, task: task.name,
+							results: JSON.stringify(st.results),
+						});
+						toast(out.message, 'ok');
+						if ((out.held || []).length) {
+							S.scrap.held = { lpn: detail.lpn, lines: out.held };
+							go('#quality-hold');
+						} else {
+							S.quality = { task: null, results: [] };
+							go('#quality');
+						}
+					} catch (err) { toast(err.message, 'err'); e.target.disabled = false; }
+				},
+			}, 'Submit inspection'),
+		);
+	};
+	rerender();
+}
+
+function screenQualityHold() {
+	const held = S.scrap.held;
+	if (!held) return go('#quality');
+	S.quality = { task: null, results: [] };
+	S.scrap.held = null;
+	S.scrap.lpn = held.lpn;
+	S.scrap.info = null;
+	S.scrap.lines = held.lines.map((l) => ({ item_code: l.item_code, qty: l.qty, batch_no: l.batch_no || '' }));
+	const units = held.lines.reduce((a, l) => a + l.qty, 0);
+	render(topbar(`QC Hold · ${held.lpn}`),
+		el('div', { class: 'card' }, el('div', { class: 'small' },
+			`${units} unit(s) failed inspection and are held on QC Hold in ${held.lpn}.`)),
+		el('button', {
+			class: 'primary danger', style: 'margin-top:8px',
+			onclick: () => go('#scrap-do'),
+		}, '🗑 Scrap failed units now'),
+		el('button', {
+			class: 'big secondary', style: 'margin-top:8px',
+			onclick: () => go('#quality'),
+		}, 'Keep on QC Hold — desk decides'),
+	);
+}
+
+// ------------------------------------------------ scrap (controlled write-off)
+
+function screenScrap() {
+	const scan = suggestCard('Scan LPN to scrap', 'LPN-…', async (val, input) => {
+		try {
+			const res = await api('fwms.api.rf_common.scan', { barcode: val, screen: 'scrap' });
+			if (res.type !== 'lpn') throw new Error(`Not an LPN (${res.type})`);
+			const info = await api('fwms.api.rf_scrap.lpn_info', { lpn: res.name });
+			S.scrap = {
+				lpn: info.lpn, info,
+				lines: info.items.map((it) => ({ item_code: it.item_code, qty: it.qty, batch_no: it.batch_no || '' })),
+				reason: S.scrap.reason || 'Damaged', held: null,
+			};
+			go('#scrap-do');
+		} catch (e) { toast(e.message, 'err'); input.select(); }
+	}, '', { context: 'lpn' });
+	render(topbar('Scrap'),
+		scan,
+		el('div', { class: 'card' }, el('div', { class: 'small' },
+			'Pick lines + reason, then file the draft. Inventory Control approves the Stock Entry before stock posts.')),
+	);
+	scan.focusScan();
+}
+
+async function screenScrapDo() {
+	const st = S.scrap;
+	if (!st.lpn) return go('#scrap');
+	if (!st.info) st.info = await api('fwms.api.rf_scrap.lpn_info', { lpn: st.lpn }).catch(() => null);
+	const REASONS = ['Damaged', 'Expired', 'Contamination', 'Obsolete', 'Quality Fail', 'Other'];
+
+	const rerender = () => {
+		const reason = el('select', { style: 'width:100%;padding:10px;font-size:1rem' },
+			...REASONS.map((r) => el('option', { value: r }, r)));
+		reason.value = st.reason;
+		reason.addEventListener('change', () => { st.reason = reason.value; });
+
+		const cards = st.lines.map((line, i) => {
+			const qty = el('input', { type: 'number', value: String(line.qty), min: '0', step: '1' });
+			qty.addEventListener('input', () => { line.qty = parseFloat(qty.value) || 0; });
+			return el('div', { class: 'card' },
+				row(line.item_code, line.batch_no ? `batch ${line.batch_no}` : '',
+					el('button', {
+						class: 'pill err', style: 'cursor:pointer',
+						onclick: () => { st.lines.splice(i, 1); rerender(); },
+					}, '✕')),
+				qty, qtyButtons(qty),
+			);
+		});
+		render(topbar(`Scrap · ${st.lpn}`),
+			el('div', { class: 'card' }, row(st.lpn,
+				st.info ? `${st.info.zone || ''}${st.info.bin ? ' · ' + st.info.bin : ''}` : '')),
+			...cards,
+			el('div', { class: 'card' }, el('label', { class: 'small' }, 'Reason'), reason),
+			el('button', {
+				class: 'primary danger', onclick: async (e) => {
+					e.target.disabled = true;
+					try {
+						const out = await api('fwms.api.rf_scrap.scrap', {
+							lpn: st.lpn, reason: st.reason || 'Damaged',
+							lines: JSON.stringify(st.lines.filter((l) => l.qty > 0)),
+						});
+						toast(out.message, 'ok');
+						S.scrap = { lpn: null, info: null, lines: [], reason: out.reason, held: null };
+						go('#menu');
+					} catch (err) { toast(err.message, 'err'); e.target.disabled = false; }
+				},
+			}, 'File scrap draft'),
+		);
+	};
+	rerender();
+}
+
 // ---------------------------------------------------------------- router
 
 const ROUTES = {
@@ -893,6 +1130,11 @@ const ROUTES = {
 	'#load-ship-do': async () => { if (!S.worker) return screenLogin(); await screenLoadShipDo(); },
 	'#returns': async () => { if (!S.worker) return screenLogin(); screenReturns(); },
 	'#returns-do': async () => { if (!S.worker) return screenLogin(); screenReturnsDo(); },
+	'#quality': async () => { if (!S.worker) return screenLogin(); await screenQuality(); },
+	'#quality-do': async () => { if (!S.worker) return screenLogin(); await screenQualityDo(); },
+	'#quality-hold': async () => { if (!S.worker) return screenLogin(); screenQualityHold(); },
+	'#scrap': async () => { if (!S.worker) return screenLogin(); screenScrap(); },
+	'#scrap-do': async () => { if (!S.worker) return screenLogin(); await screenScrapDo(); },
 };
 
 window.addEventListener('hashchange', () => {

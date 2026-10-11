@@ -33,7 +33,7 @@
    "fieldtype": "Select",
    "in_list_view": 1,
    "label": "Zone Type",
-   "options": "Receiving Docks\nQC Hold\nBulk\nPick Faces\nPacking\nShipping Docks",
+   "options": "Receiving Docks\nQC Hold\nBulk\nPick Faces\nPacking\nShipping Docks\nScrap",
    "reqd": 1
   },
   {

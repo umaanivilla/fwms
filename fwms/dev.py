@@ -249,6 +249,54 @@ def check_returns():
 			lines=[{"item_code": item["item_code"], "qty": 1, "grade": "B"}],
 		)
 
+
+def check_quality():
+	def fn():
+		# queue is fed by QC-fail receiving (§2/§3) or grade-B returns (§11)
+		task = frappe.get_all(
+			"FWMS Task", filters={"task_type": "Quality", "status": "Open"},
+			pluck="name", order_by="creation", limit=1,
+		)
+		if not task:
+			return "no open Quality tasks (receive a QC-fail or return grade B first)"
+		from fwms.api import rf_quality
+
+		detail = rf_quality.task_detail(task[0])
+		results = [
+			{"item_code": it["item_code"], "qty": it["qty"], "batch_no": it["batch_no"], "verdict": "Pass"}
+			for it in detail["items"]
+		]
+		return rf_quality.inspect(lpn=detail["lpn"], results=results, task=task[0])
+
+	return _run(fn)
+
+
+def check_scrap():
+	def fn():
+		frappe.set_user("w008@fwms.local")
+		from fwms.api import rf_scrap
+
+		lpn = frappe.get_all(
+			"FWMS LPN", filters={"status": "In Bin", "zone": "Bulk Storage"}, pluck="name", limit=1
+		)
+		if not lpn:
+			return "no stocked bulk LPNs to scrap"
+		info = rf_scrap.lpn_info(lpn[0])
+		line = info["items"][0]
+		out = rf_scrap.scrap(
+			lpn=info["lpn"], reason="Obsolete",
+			lines=[{"item_code": line["item_code"], "qty": 1, "batch_no": line["batch_no"]}],
+		)
+		# approve as Inventory Control so the LPN realigns
+		frappe.set_user("w010@fwms.local")
+		se = frappe.get_doc("Stock Entry", out["stock_entry"])
+		se.submit()
+		lpn_status = frappe.db.get_value("FWMS LPN", info["lpn"], "status")
+		return {"draft": out["stock_entry"], "submitted": se.name, "lpn_status": lpn_status}
+
+
+	return _run(fn)
+
 	return _run(fn)
 
 

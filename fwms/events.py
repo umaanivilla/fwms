@@ -4,7 +4,7 @@
 from __future__ import annotations
 
 import frappe
-from frappe.utils import now
+from frappe.utils import flt, now
 
 
 def emit(
@@ -85,6 +85,7 @@ def on_purchase_receipt_submit(doc, method=None):
 
 
 def on_stock_entry_submit(doc, method=None):
+	apply_scrap_to_lpn(doc)
 	emit(
 		"Putaway & Storage",
 		f"Stock Entry {doc.name} ({doc.stock_entry_type or doc.purpose}) posted",
@@ -92,6 +93,53 @@ def on_stock_entry_submit(doc, method=None):
 		reference_doctype="Stock Entry",
 		reference_name=doc.name,
 	)
+
+
+def apply_scrap_to_lpn(doc) -> bool:
+	"""Scrap transfer posted: pull the scrapped lines out of the FWMS LPN.
+
+	RF scrap files a DRAFT Material Transfer to the Scrap warehouse; FWMS LPN
+	truth only realigns here, when Inventory Control submits it (same pattern
+	as count-variance Stock Reconciliations).
+	"""
+	from fwms.utils import get_warehouse_for_type
+
+	lpn_name = getattr(doc, "fwms_lpn", None)
+	if not lpn_name or not frappe.db.exists("FWMS LPN", lpn_name):
+		return False
+	scrap_wh = get_warehouse_for_type("Scrap")
+	if not scrap_wh or not any(d.t_warehouse == scrap_wh for d in doc.items):
+		return False
+
+	lpn = frappe.get_doc("FWMS LPN", lpn_name)
+	for row in doc.items:
+		if row.t_warehouse != scrap_wh or flt(row.qty) <= 0:
+			continue
+		match = next(
+			(r for r in lpn.items if r.item == row.item_code and (r.batch_no or None) == (row.batch_no or None)),
+			None,
+		)
+		if match:
+			match.qty = flt(match.qty) - flt(row.qty)
+	for r in list(lpn.items):
+		if flt(r.qty) <= 0:
+			lpn.remove(r)
+	if not lpn.items:
+		lpn.status = "Closed"
+		lpn.bin = None
+	lpn.save(ignore_permissions=True)
+
+	emit(
+		"Inventory Control",
+		f"Scrap posted: {doc.name} — LPN {lpn_name} "
+		f"{'closed out' if lpn.status == 'Closed' else 'reduced'}",
+		subtype="scrap_posted",
+		severity="Warning",
+		lpn=lpn_name,
+		reference_doctype="Stock Entry",
+		reference_name=doc.name,
+	)
+	return True
 
 
 def on_pick_list_submit(doc, method=None):

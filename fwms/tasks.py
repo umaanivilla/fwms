@@ -15,6 +15,7 @@ TASK_CATEGORY = {
 	"Pick": "Orders & Picking",
 	"Replenish": "Putaway & Storage",
 	"Count": "Inventory Control",
+	"Quality": "Receiving & QC",
 	"Pack": "Packing",
 	"Load": "Sort Load & Ship",
 }

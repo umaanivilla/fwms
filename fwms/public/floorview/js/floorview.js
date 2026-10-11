@@ -146,14 +146,41 @@ const FILTERS = {
 };
 
 /* ---------------------------------------------------------------- api */
-async function api(method, params = {}) {
+// v16 requires X-Frappe-CSRF-Token on POSTs from browser sessions (the RF
+// app solved this in app.js; same pattern here): fetch once, retry once on
+// a rotated session.
+let CSRF = null;
+let csrfFetch = null;
+
+async function ensureCsrf(force = false) {
+	if (CSRF && !force) return CSRF;
+	if (!csrfFetch) {
+		csrfFetch = fetch('/api/method/fwms.api.pwa.csrf', { method: 'POST' })
+			.then((r) => r.json())
+			.then((d) => { CSRF = d.message || null; })
+			.catch(() => { CSRF = null; })
+			.finally(() => { csrfFetch = null; });
+	}
+	await csrfFetch;
+	return CSRF;
+}
+
+async function api(method, params = {}, _retry = true) {
+	await ensureCsrf();
 	const body = new URLSearchParams(params);
-	const r = await fetch(`/api/method/${method}`, {
-		method: 'POST',
-		headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'Accept': 'application/json' },
-		body,
-	});
-	const d = await r.json();
+	const headers = {
+		'Content-Type': 'application/x-www-form-urlencoded',
+		'Accept': 'application/json',
+	};
+	if (CSRF) headers['X-Frappe-CSRF-Token'] = CSRF;
+	const r = await fetch(`/api/method/${method}`, { method: 'POST', headers, body });
+	const d = await r.json().catch(() => ({}));
+	// session rotated (login/logout) -> stale token: refetch once and retry
+	if ((d.exc_type === 'CSRFTokenError' || /Invalid Request/.test(d.exc || '')) && _retry) {
+		CSRF = null;
+		await ensureCsrf(true);
+		return api(method, params, false);
+	}
 	if (!r.ok || d.exc) throw new Error(String(d.exc || r.status));
 	return d.message;
 }

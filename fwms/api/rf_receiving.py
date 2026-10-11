@@ -184,6 +184,39 @@ def commit_receipt(po: str, lpn_barcode: str | None, lines: list[dict]) -> dict:
 		}],
 	)
 
+	# QC-hold tote for failed lines + a Quality task to inspect it
+	fail_lines = [l for l in lines if flt(l.get("qty")) > 0 and l.get("qc") == "Fail"]
+	if fail_lines:
+		qc_lpn_barcode = f"QC-{pr.name}"
+		if not frappe.db.exists("FWMS LPN", qc_lpn_barcode):
+			pr_rows = {r.item_code: r for r in pr.items}
+			qc_lpn = frappe.new_doc("FWMS LPN")
+			qc_lpn.barcode = qc_lpn_barcode
+			qc_lpn.lpn_type = "Tote"
+			qc_lpn.status = "In Bin"
+			qc_lpn.zone = frappe.db.get_value("FWMS Zone", {"zone_type": "QC Hold"}, "name")
+			qc_lpn.source_doctype = "Purchase Receipt"
+			qc_lpn.source_name = pr.name
+			qc_lpn.purchase_order = po
+			for line in fail_lines:
+				qc_lpn.append("items", {
+					"item": line["item_code"],
+					"qty": flt(line["qty"]),
+					"batch_no": getattr(pr_rows.get(line["item_code"]), "batch_no", None) or None,
+				})
+			qc_lpn.insert(ignore_permissions=True)
+		create_task(
+			"Quality",
+			qty=sum(flt(l["qty"]) for l in fail_lines),
+			lpn=qc_lpn_barcode,
+			priority="2-Normal",
+			references=[{
+				"reference_doctype": "Purchase Receipt",
+				"reference_name": pr.name,
+				"note": "QC hold inspection",
+			}],
+		)
+
 	emit(
 		"Receiving & QC",
 		f"Received {lpn.total_qty():g} units into {lpn.name} against {po} (PR {pr.name})",

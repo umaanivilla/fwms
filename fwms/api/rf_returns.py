@@ -8,13 +8,14 @@ from frappe.utils import flt
 
 from fwms.api.rf_common import as_list, current_worker, require_operator
 from fwms.events import emit
+from fwms.tasks import create_task
 from fwms.utils import get_warehouse_for_type as _zone_warehouse
 
 GRADE_WAREHOUSE_ZONE = {
 	"A": "Pick Faces",   # resellable
 	"B": "QC Hold",      # needs inspection
 	"Refurb": "Bulk",    # refurbish later
-	"Scrap": None,       # scrap warehouse (no FWMS zone)
+	"Scrap": "Scrap",    # scrap warehouse (Scrap zone)
 }
 
 
@@ -107,6 +108,19 @@ def process_return(delivery_note: str, lines: list[dict]) -> dict:
 						for l in grade_lines
 					],
 				}).insert(ignore_permissions=True)
+			if grade == "B":
+				# grade B lands on QC Hold — queue a Quality inspection for it
+				create_task(
+					"Quality",
+					qty=sum(flt(l["qty"]) for l in grade_lines),
+					lpn=lpn_barcode,
+					priority="2-Normal",
+					references=[{
+						"reference_doctype": "Delivery Note",
+						"reference_name": delivery_note,
+						"note": "grade B return inspection",
+					}],
+				)
 
 		emit(
 			"Returns",

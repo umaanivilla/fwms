@@ -334,6 +334,129 @@ Grade matrix: **A** → Pick Faces, **B** → QC Hold, **Refurb** → Bulk,
 
 ---
 
+## 16. CLI testing with frappectl
+
+[frappectl](https://github.com/frappe/frappectl) is the official CLI client for
+the Frappe REST API v2 (Frappe v16+). Unlike `bench execute` (in-process), it
+drives the running site over HTTP — the same path a real RF gun or integration
+takes. Output is clean JSON when piped, so flows can be scripted and asserted.
+
+### One-time setup
+
+```bash
+uv tool install frappectl        # provides `frappectl` + `fr` (needs ~/.local/bin on PATH)
+
+# API tokens (printed once) — regenerate if you get 401 "Failed to decrypt api_secret"
+# (that error means the stored secret predates the site's current encryption key)
+bench --site fwms.localhost execute frappe.core.doctype.user.user.generate_keys \
+    --args "['supervisor@fwms.local']"     # read-only identity
+bench --site fwms.localhost execute frappe.core.doctype.user.user.generate_keys \
+    --args "['w001@fwms.local']"           # RF operator identity (writable)
+```
+
+Store each token in an env file under `~/frappe-bench/config/` (outside every
+git repo, `chmod 600`) — this is frappectl's documented headless/agent mode.
+Interactive users may prefer keyring profiles instead: `fr auth login
+http://localhost:8000 --name fwms-rw --writable`.
+
+`config/frappectl-ro.env` — supervisor, refuses every write client-side:
+
+```
+export FRAPPE_SITE=http://localhost:8000
+export FRAPPE_API_KEY=<supervisor api_key>
+export FRAPPE_API_SECRET=<supervisor api_secret>
+export FRAPPE_READ_ONLY=1
+```
+
+`config/frappectl-rw.env` — same but with W001's key/secret and no
+`FRAPPE_READ_ONLY`.
+
+### Proof of concept — RF receiving over REST
+
+`scripts/rf-receiving-poc.sh` performs §2 of this guide as a remote client:
+token-auths as W001 (`fwms.api.rf_auth.me`), finds a submitted PO with pending
+qty, commits a 3-unit QC-Pass receipt (`po_info` + `commit_receipt`), then
+verifies the results — PR submitted, LPN in Receiving with contents, open
+Putaway task, event-log entry.
+
+```bash
+bash apps/fwms/scripts/rf-receiving-poc.sh
+```
+
+Exit codes: `0` pass · `1` failed check · `2` no pending PO (create one, §2).
+
+### Handy one-liners
+
+```bash
+set -a; . config/frappectl-ro.env; set +a
+
+fr doc list "FWMS Task" -f status=Open --fields name,task_type,lpn,qty   # live queues
+fr doc get "FWMS LPN" LPN-000019                                          # full LPN + contents
+fr doc list "FWMS Event Log" --limit 5 --fields category,message          # what just happened
+fr method call fwms.api.rf_receiving.po_info -F po=PUR-ORD-2026-00001     # as operator
+```
+
+RBAC notes (as designed in `fwms.setup.install`): Purchase Order/Receipt and
+stock-master reads belong to the **FWMS Operator** role — the supervisor
+profile reads the **FWMS** doctypes (LPN, Task, Event Log, Worker…).
+`fr doctype list` additionally needs a System Manager-level user.
+Read-only profiles refuse POST/mutations before any request leaves the
+machine — safe to hand to anyone for demos against seeded data.
+
+---
+
+## 17. Quality — QC Hold disposition
+
+*Input: a QC-fail.* Receiving with **✖ Fail** (§3) or a grade-B return (§11)
+creates a tote in **QC Hold** (`QC-<PR>` / `RET-<return>`) and queues a
+**Quality task**.
+
+1. `/rf` → **Quality**.
+   **Expect:** queue cards "LPN × N units · Open" with priority pill.
+2. Tap a card.
+   **Expect:** contents (item, qty, batch) and the source document
+   (e.g. Purchase Receipt MAT-PRE-…), zone QC Hold. Every line defaults
+   **✔ Pass** at full qty.
+3. Set verdicts — tap **✔ Pass** / **✖ Fail** per line. Partial qty is a
+   split: set the qty; every unit must get a verdict (the server rejects
+   uninspected remainders).
+4. **Submit inspection**.
+   **Expect:** toast "N released (…), M held on QC Hold".
+
+**Desk verification:**
+- All-pass → the LPN itself is **In Bin** in a pick face / bulk bin and a
+  Material Transfer from QC Hold posts.
+- Split → good units land in a **fresh Bulk tote** (submitted Stock Entry),
+  failed units stay in the QC-Hold LPN.
+- **Quality Inspection** list: Accepted + Rejected entries against the
+  source PR/DN (post-facto QIs; the Stock Settings flag allows this).
+- FWMS Task complete; event `Receiving & QC · quality_disposition`.
+
+---
+
+## 18. Scrap — controlled write-off
+
+1. `/rf` → **Scrap** → scan an LPN barcode.
+   **Expect:** contents card with zone/bin.
+2. Adjust line quantities (✕ removes a line), pick a **Reason**
+   (Damaged / Expired / Contamination / Obsolete / Quality Fail / Other).
+3. **File scrap draft**.
+   **Expect:** toast "Scrap draft MAT-STE-… created — Inventory Control
+   submits it to post stock". Nothing has moved yet.
+
+**Desk (Inventory Control):**
+- Stock Entry list → the draft Material Transfer (zone warehouse →
+  `Scrap - FW`), remark "RF scrap (reason)".
+- **Submit** it → stock posts to Scrap - FW; the LPN loses the scrapped
+  lines and **closes** (`Closed`) when empty; event
+  `Inventory Control · scrap posted`.
+
+Shortcut: after a Quality **Fail** (§17) the RF offers **"Scrap failed units
+now"** — the scrap screen opens prefilled with the held lines. Returns graded
+**Scrap** (§11) now route to `Scrap - FW` as well.
+
+---
+
 ## Troubleshooting
 
 | Symptom | Likely cause / fix |
