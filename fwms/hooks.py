@@ -85,6 +85,10 @@ app_license = "mit"
 # Installation
 # ------------
 
+# install-app never fires after_migrate, so after_install must run the same
+# idempotent bootstrap (roles, ERP permissions, custom fields, tariffs,
+# settings) — a fresh `bench install-app fwms` is otherwise unusable.
+after_install = "fwms.setup.install.after_migrate"
 after_migrate = "fwms.setup.install.after_migrate"
 
 # Uninstallation

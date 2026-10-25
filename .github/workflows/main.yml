@@ -88,6 +88,7 @@ jobs:
             --admin-password admin \
             --install-app erpnext
           bench --site test_site install-app fwms
+          bench --site test_site migrate
           bench --site test_site set-config allow_tests true
 
       - name: Run tests

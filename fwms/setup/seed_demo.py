@@ -155,8 +155,16 @@ def _roots():
 			{"doctype": "Supplier Group", "supplier_group_name": "All Supplier Groups", "is_group": 1},
 		),
 	]
-	for name, doc in roots:
-		if not frappe.db.exists(doc["doctype"], name):
+	# the first tuple element is the doctype; the doc's name lives in a
+	# doctype-specific field, so the exists check must use the right key
+	name_field = {
+		"Item Group": "item_group_name",
+		"Customer Group": "customer_group_name",
+		"Territory": "territory_name",
+		"Supplier Group": "supplier_group_name",
+	}
+	for doctype, doc in roots:
+		if not frappe.db.exists(doctype, doc[name_field[doctype]]):
 			frappe.get_doc(doc).insert(ignore_permissions=True)
 	for uom in ("Nos", "Unit"):
 		if not frappe.db.exists("UOM", uom):
@@ -399,15 +407,28 @@ def _item_group(name):
 
 
 def _parties():
+	# party masters require leaf (non-group) entries; the roots created by
+	# _roots() are group nodes and ERPNext rejects them on the party
+	leafs = [
+		("Customer Group", "customer_group_name", "parent_customer_group", "All Customer Groups", "Retail"),
+		("Supplier Group", "supplier_group_name", "parent_supplier_group", "All Supplier Groups", "General"),
+		("Territory", "territory_name", "parent_territory", "All Territories", "Home"),
+	]
+	for doctype, name_key, parent_key, root, leaf in leafs:
+		if frappe.db.exists(doctype, root) and not frappe.db.exists(doctype, leaf):
+			frappe.get_doc(
+				{**{"doctype": doctype, name_key: leaf, "is_group": 0}, parent_key: root}
+			).insert(ignore_permissions=True)
+
 	for name, country in SUPPLIERS:
 		if not frappe.db.exists("Supplier", name):
 			frappe.get_doc(
 				{
 					"doctype": "Supplier",
 					"supplier_name": name,
-					"supplier_group": "All Supplier Groups"
-					if frappe.db.exists("Supplier Group", "All Supplier Groups")
-					else None,
+					"supplier_group": "General"
+					if frappe.db.exists("Supplier Group", "General")
+					else ("All Supplier Groups" if frappe.db.exists("Supplier Group", "All Supplier Groups") else None),
 					"country": country,
 				}
 			).insert(ignore_permissions=True)
@@ -417,12 +438,12 @@ def _parties():
 				{
 					"doctype": "Customer",
 					"customer_name": name,
-					"customer_group": "All Customer Groups"
-					if frappe.db.exists("Customer Group", "All Customer Groups")
-					else None,
-					"territory": "All Territories"
-					if frappe.db.exists("Territory", "All Territories")
-					else None,
+					"customer_group": "Retail"
+					if frappe.db.exists("Customer Group", "Retail")
+					else ("All Customer Groups" if frappe.db.exists("Customer Group", "All Customer Groups") else None),
+					"territory": "Home"
+					if frappe.db.exists("Territory", "Home")
+					else ("All Territories" if frappe.db.exists("Territory", "All Territories") else None),
 					"country": country,
 				}
 			).insert(ignore_permissions=True)
