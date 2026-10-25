@@ -62,11 +62,7 @@ def ship(dock_door: str) -> dict:
 	carts = frappe.get_all(
 		"FWMS LPN", filters={"zone": zone, "status": "Packed", "lpn_type": "Cart"}, pluck="name"
 	)
-	dns = sorted({
-		dn for dn in (
-			frappe.db.get_value("FWMS LPN", c, "delivery_note") for c in carts
-		) if dn
-	})
+	dns = sorted({dn for dn in (frappe.db.get_value("FWMS LPN", c, "delivery_note") for c in carts) if dn})
 	if not dns:
 		frappe.throw("No staged cartons with draft Delivery Notes at this door")
 

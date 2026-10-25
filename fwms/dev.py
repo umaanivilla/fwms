@@ -28,11 +28,14 @@ def check_receive():
 		frappe.set_user("w001@fwms.local")
 		from fwms.api import rf_receiving
 
-		po = frappe.get_all("Purchase Order", filters={"docstatus": 1}, pluck="name", order_by="creation", limit=1)[0]
+		po = frappe.get_all(
+			"Purchase Order", filters={"docstatus": 1}, pluck="name", order_by="creation", limit=1
+		)[0]
 		info = rf_receiving.po_info(po)
 		item = next(i for i in info["items"] if i["pending_qty"] >= 3)
 		return rf_receiving.commit_receipt(
-			po=po, lpn_barcode=None,
+			po=po,
+			lpn_barcode=None,
 			lines=[{"item_code": item["item_code"], "qty": 3, "qc": "Pass"}],
 		)
 
@@ -45,8 +48,10 @@ def check_putaway():
 		from fwms.api import rf_putaway
 
 		task = frappe.get_all(
-			"FWMS Task", filters={"task_type": "Putaway", "status": "Open"},
-			pluck="name", limit=1,
+			"FWMS Task",
+			filters={"task_type": "Putaway", "status": "Open"},
+			pluck="name",
+			limit=1,
 		)
 		if not task:
 			return "no open putaway tasks"
@@ -60,13 +65,17 @@ def check_putaway():
 def check_pick():
 	def fn():
 		# a worker whose skills allow picking (or blank skills)
-		worker = frappe.db.get_value(
-			"FWMS Worker",
-			filters={"active": 1, "skills": ("in", ("Pick, Pack",))},
-			fieldname="user",
-		) or frappe.db.get_value(
-			"FWMS Worker", filters={"active": 1, "skills": ("is", "not set")}, fieldname="user"
-		) or "w003@fwms.local"
+		worker = (
+			frappe.db.get_value(
+				"FWMS Worker",
+				filters={"active": 1, "skills": ("in", ("Pick, Pack",))},
+				fieldname="user",
+			)
+			or frappe.db.get_value(
+				"FWMS Worker", filters={"active": 1, "skills": ("is", "not set")}, fieldname="user"
+			)
+			or "w003@fwms.local"
+		)
 		frappe.set_user(worker)
 		from fwms.api import rf_picking
 
@@ -75,8 +84,10 @@ def check_pick():
 			return "no pick tasks"
 		detail = rf_picking.task_detail(task=claimed["task"]["name"])
 		return rf_picking.pick_confirm(
-			task=claimed["task"]["name"], qty=detail["qty"],
-			cart=claimed["cart"], scanned_serials=[],
+			task=claimed["task"]["name"],
+			qty=detail["qty"],
+			cart=claimed["cart"],
+			scanned_serials=[],
 		)
 
 	return _run(fn)
@@ -118,13 +129,10 @@ def check_count():
 		from fwms.api import rf_count
 
 		# pick a bulk bin that actually holds LPN stock
-		bin_name = frappe.db.get_value(
-			"FWMS LPN", {"zone": "Bulk Storage", "status": "In Bin"}, "bin"
-		)
+		bin_name = frappe.db.get_value("FWMS LPN", {"zone": "Bulk Storage", "status": "In Bin"}, "bin")
 		if not bin_name:
 			return "no stocked bulk bins"
 		start = rf_count.start(bin_name=bin_name)
-		expected = start.get("expected") or []
 		# blind: derive counted from a second stock lookup, minus one unit
 		from fwms.fwms.doctype.fwms_bin.fwms_bin import get_bin_stock
 
@@ -181,15 +189,17 @@ def check_consignment():
 		dn = frappe.get_all("Delivery Note", filters={"docstatus": 1}, pluck="name", limit=1)
 		if not dn:
 			return "no submitted DNs yet"
-		cons = frappe.get_doc({
-			"doctype": "FWMS Consignment",
-			"transport_mode": "Road",
-			"carrier": "Nordic Haulage",
-			"incoterms": "FOB",
-			"place_of_loading": "Gothenburg",
-			"place_of_delivery": "Hamburg",
-			"delivery_notes": [{"delivery_note": dn[0]}],
-		}).insert(ignore_permissions=True)
+		cons = frappe.get_doc(
+			{
+				"doctype": "FWMS Consignment",
+				"transport_mode": "Road",
+				"carrier": "Nordic Haulage",
+				"incoterms": "FOB",
+				"place_of_loading": "Gothenburg",
+				"place_of_delivery": "Hamburg",
+				"delivery_notes": [{"delivery_note": dn[0]}],
+			}
+		).insert(ignore_permissions=True)
 		frappe.db.commit()
 		doc = frappe.get_doc("FWMS Consignment", cons.name)
 		lines = doc.get_lines()
@@ -241,7 +251,9 @@ def check_returns():
 		frappe.set_user("w007@fwms.local")
 		from fwms.api import rf_returns
 
-		dn = frappe.get_all("Delivery Note", filters={"docstatus": 1}, pluck="name", order_by="creation desc", limit=1)[0]
+		dn = frappe.get_all(
+			"Delivery Note", filters={"docstatus": 1}, pluck="name", order_by="creation desc", limit=1
+		)[0]
 		info = rf_returns.dn_info(dn)
 		item = info["items"][0]
 		return rf_returns.process_return(
@@ -254,8 +266,11 @@ def check_quality():
 	def fn():
 		# queue is fed by QC-fail receiving (§2/§3) or grade-B returns (§11)
 		task = frappe.get_all(
-			"FWMS Task", filters={"task_type": "Quality", "status": "Open"},
-			pluck="name", order_by="creation", limit=1,
+			"FWMS Task",
+			filters={"task_type": "Quality", "status": "Open"},
+			pluck="name",
+			order_by="creation",
+			limit=1,
 		)
 		if not task:
 			return "no open Quality tasks (receive a QC-fail or return grade B first)"
@@ -284,7 +299,8 @@ def check_scrap():
 		info = rf_scrap.lpn_info(lpn[0])
 		line = info["items"][0]
 		out = rf_scrap.scrap(
-			lpn=info["lpn"], reason="Obsolete",
+			lpn=info["lpn"],
+			reason="Obsolete",
 			lines=[{"item_code": line["item_code"], "qty": 1, "batch_no": line["batch_no"]}],
 		)
 		# approve as Inventory Control so the LPN realigns
@@ -293,7 +309,6 @@ def check_scrap():
 		se.submit()
 		lpn_status = frappe.db.get_value("FWMS LPN", info["lpn"], "status")
 		return {"draft": out["stock_entry"], "submitted": se.name, "lpn_status": lpn_status}
-
 
 	return _run(fn)
 
@@ -308,7 +323,8 @@ def check_replenish_confirm():
 		task = frappe.get_all(
 			"FWMS Task",
 			filters={"task_type": "Replenish", "status": ("in", ("Open",))},
-			pluck="name", limit=1,
+			pluck="name",
+			limit=1,
 		)
 		if not task:
 			return "no open replenish tasks (run check_replenish first)"
@@ -318,7 +334,8 @@ def check_replenish_confirm():
 			return f"no bulk source stock for {item}"
 		task_qty = frappe.db.get_value("FWMS Task", task[0], "qty")
 		return rf_replenish.confirm(
-			task=task[0], from_bin=sources[0]["bin"],
+			task=task[0],
+			from_bin=sources[0]["bin"],
 			qty=min(task_qty, sources[0]["qty"]),
 			batch_no=sources[0]["batch_no"] or "",
 		)
@@ -338,12 +355,14 @@ def check_spike():
 def debug_commit_currency():
 	def fn():
 		frappe.set_user("w001@fwms.local")
-		from fwms.api import rf_receiving
 		import traceback
+
+		from fwms.api import rf_receiving
 
 		try:
 			return rf_receiving.commit_receipt(
-				po="PUR-ORD-2026-00005", lpn_barcode=None,
+				po="PUR-ORD-2026-00005",
+				lpn_barcode=None,
 				lines=[{"item_code": "COCOA-100", "qty": 2, "qc": "Pass"}],
 			)
 		except Exception:
@@ -405,13 +424,18 @@ def topup_bulk(item: str = "BATT-20", qty: int = 20):
 			break
 	if not lpn_name:
 		lpn_name = f"TOPUP-{item}"
-		frappe.get_doc({
-			"doctype": "FWMS LPN", "barcode": lpn_name, "lpn_type": "Tote",
-			"status": "In Bin", "zone": "Bulk Storage", "bin": "BULK-A05-R2-B4",
-		}).insert(ignore_permissions=True)
+		frappe.get_doc(
+			{
+				"doctype": "FWMS LPN",
+				"barcode": lpn_name,
+				"lpn_type": "Tote",
+				"status": "In Bin",
+				"zone": "Bulk Storage",
+				"bin": "BULK-A05-R2-B4",
+			}
+		).insert(ignore_permissions=True)
 	from fwms.fwms.doctype.fwms_lpn.fwms_lpn import add_contents
 
-	add_contents(lpn_name, item, qty, batch_no=None if not serials else None)
+	add_contents(lpn_name, item, qty, batch_no=None)
 	frappe.db.commit()
 	return {"stock_entry": se.name, "lpn": lpn_name, "serials": len(serials) if serials else 0}
-

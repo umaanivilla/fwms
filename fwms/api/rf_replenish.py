@@ -46,7 +46,8 @@ def source_bins(item: str) -> list[dict]:
 	bin_by_lpn = {l.name: l.bin for l in lpns}
 	return [
 		{"bin": bin_by_lpn.get(r.parent), "lpn": r.parent, "batch_no": r.batch_no, "qty": flt(r.qty)}
-		for r in rows if flt(r.qty) > 0
+		for r in rows
+		if flt(r.qty) > 0
 	]
 
 
@@ -73,7 +74,9 @@ def confirm(task: str, from_bin: str, qty: float, batch_no: str | None = None) -
 	# source LPN holding the stock
 	from fwms.fwms.doctype.fwms_bin.fwms_bin import get_bin_stock
 
-	stock = [r for r in get_bin_stock(from_bin) if r.item == item and (not batch_no or r.batch_no == batch_no)]
+	stock = [
+		r for r in get_bin_stock(from_bin) if r.item == item and (not batch_no or r.batch_no == batch_no)
+	]
 	if not stock:
 		frappe.throw(f"No {item} stock found in {from_bin}")
 
@@ -108,9 +111,7 @@ def confirm(task: str, from_bin: str, qty: float, batch_no: str | None = None) -
 	from fwms.fwms.doctype.fwms_lpn.fwms_lpn import add_contents, find_lpn_by_barcode, remove_contents
 
 	src_lpn = None
-	lpn_rows = frappe.get_all(
-		"FWMS LPN", filters={"bin": from_bin, "status": "In Bin"}, pluck="name"
-	)
+	lpn_rows = frappe.get_all("FWMS LPN", filters={"bin": from_bin, "status": "In Bin"}, pluck="name")
 	for candidate in lpn_rows:
 		rows = frappe.get_all(
 			"FWMS LPN Item",
@@ -123,19 +124,28 @@ def confirm(task: str, from_bin: str, qty: float, batch_no: str | None = None) -
 
 	dst = f"RPL-{to_bin}"
 	if not find_lpn_by_barcode(dst):
-		frappe.get_doc({
-			"doctype": "FWMS LPN",
-			"barcode": dst,
-			"lpn_type": "Tote",
-			"status": "In Bin",
-			"bin": to_bin,
-			"zone": to_zone,
-			"primary_item": item,
-		}).insert(ignore_permissions=True)
+		frappe.get_doc(
+			{
+				"doctype": "FWMS LPN",
+				"barcode": dst,
+				"lpn_type": "Tote",
+				"status": "In Bin",
+				"bin": to_bin,
+				"zone": to_zone,
+				"primary_item": item,
+			}
+		).insert(ignore_permissions=True)
 	else:
-		frappe.db.set_value("FWMS LPN", dst, {
-			"bin": to_bin, "zone": to_zone, "status": "In Bin",
-		}, update_modified=True)
+		frappe.db.set_value(
+			"FWMS LPN",
+			dst,
+			{
+				"bin": to_bin,
+				"zone": to_zone,
+				"status": "In Bin",
+			},
+			update_modified=True,
+		)
 
 	if src_lpn:
 		remove_contents(src_lpn, item, qty, batch_no=batch_no)

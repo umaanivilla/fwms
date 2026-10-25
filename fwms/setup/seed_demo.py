@@ -19,14 +19,60 @@ COMPANY = "FWMS Warehouse Co"
 ABBR = "FW"
 
 FIRST_NAMES = [
-	"Alice", "Bob", "Chen", "Diana", "Emil", "Farah", "Goran", "Hana", "Ivan", "Julia",
-	"Kwame", "Lena", "Marco", "Nadia", "Omar", "Priya", "Quentin", "Rosa", "Samir", "Tara",
-	"Umesh", "Vera", "Wesley", "Ximena", "Yusuf", "Zoe",
+	"Alice",
+	"Bob",
+	"Chen",
+	"Diana",
+	"Emil",
+	"Farah",
+	"Goran",
+	"Hana",
+	"Ivan",
+	"Julia",
+	"Kwame",
+	"Lena",
+	"Marco",
+	"Nadia",
+	"Omar",
+	"Priya",
+	"Quentin",
+	"Rosa",
+	"Samir",
+	"Tara",
+	"Umesh",
+	"Vera",
+	"Wesley",
+	"Ximena",
+	"Yusuf",
+	"Zoe",
 ]
 LAST_NAMES = [
-	"Andersson", "Baptista", "Chowdhury", "Dvorak", "Eriksen", "Farrell", "Gruber", "Haddad",
-	"Ibrahim", "Jensen", "Kowalski", "Lindqvist", "Moreau", "Nguyen", "Ozturk", "Patel",
-	"Quintero", "Rossi", "Santos", "Tanaka", "Ueda", "Vogel", "Walsh", "Xu", "Yilmaz", "Zhang",
+	"Andersson",
+	"Baptista",
+	"Chowdhury",
+	"Dvorak",
+	"Eriksen",
+	"Farrell",
+	"Gruber",
+	"Haddad",
+	"Ibrahim",
+	"Jensen",
+	"Kowalski",
+	"Lindqvist",
+	"Moreau",
+	"Nguyen",
+	"Ozturk",
+	"Patel",
+	"Quintero",
+	"Rossi",
+	"Santos",
+	"Tanaka",
+	"Ueda",
+	"Vogel",
+	"Walsh",
+	"Xu",
+	"Yilmaz",
+	"Zhang",
 ]
 
 # item_code, name, group, has_batch, has_serial, tariff, origin, rate, weight-ish
@@ -62,13 +108,10 @@ def run() -> str:
 	receiving_wh = f"Receiving Docks - {ABBR}"
 	bulk_wh = f"Bulk Storage - {ABBR}"
 	pick_wh = f"Pick Faces - {ABBR}"
-	qc_wh = f"QC Hold - {ABBR}"
-	scrap_wh = f"Scrap - {ABBR}"
 
 	company_doc = frappe.get_doc("Company", COMPANY)
 	# account defaults can be missing on programmatic companies
 	stock_in_hand = _account_or(company_doc, "stock_in_hand", "1010 - Stock Assets - FW")
-	cost_of_goods = _account_or(company_doc, "stock_received_but_not_billed", "2110 - Stock Received But Not Billed - FW")
 
 	_roots()
 	_stock_entry_types()
@@ -102,9 +145,15 @@ def _roots():
 	frappe.db.set_single_value("Stock Settings", "enable_serial_and_batch_no_for_item", 1)
 	roots = [
 		("Item Group", {"doctype": "Item Group", "item_group_name": "All Item Groups", "is_group": 1}),
-		("Customer Group", {"doctype": "Customer Group", "customer_group_name": "All Customer Groups", "is_group": 1}),
+		(
+			"Customer Group",
+			{"doctype": "Customer Group", "customer_group_name": "All Customer Groups", "is_group": 1},
+		),
 		("Territory", {"doctype": "Territory", "territory_name": "All Territories", "is_group": 1}),
-		("Supplier Group", {"doctype": "Supplier Group", "supplier_group_name": "All Supplier Groups", "is_group": 1}),
+		(
+			"Supplier Group",
+			{"doctype": "Supplier Group", "supplier_group_name": "All Supplier Groups", "is_group": 1},
+		),
 	]
 	for name, doc in roots:
 		if not frappe.db.exists(doc["doctype"], name):
@@ -114,16 +163,18 @@ def _roots():
 			frappe.get_doc({"doctype": "UOM", "uom_name": uom, "enabled": 1}).insert(ignore_permissions=True)
 	for pl_name, selling in (("Standard Selling", 1), ("Standard Buying", 0)):
 		if not frappe.db.exists("Price List", pl_name):
-			frappe.get_doc({
-				"doctype": "Price List",
-				"price_list_name": pl_name,
-				"__newname": pl_name,
-				"selling": selling,
-				"buying": not selling,
-				"enabled": 1,
-				"currency": "USD",
-				"countries": [],
-			}).insert(ignore_permissions=True)
+			frappe.get_doc(
+				{
+					"doctype": "Price List",
+					"price_list_name": pl_name,
+					"__newname": pl_name,
+					"selling": selling,
+					"buying": not selling,
+					"enabled": 1,
+					"currency": "USD",
+					"countries": [],
+				}
+			).insert(ignore_permissions=True)
 
 
 def _stock_entry_types():
@@ -133,12 +184,14 @@ def _stock_entry_types():
 		("Material Transfer", "Material Transfer"),
 	):
 		if not frappe.db.exists("Stock Entry Type", name):
-			frappe.get_doc({
-				"doctype": "Stock Entry Type",
-				"__newname": name,
-				"purpose": purpose,
-				"company": COMPANY,
-			}).insert(ignore_permissions=True)
+			frappe.get_doc(
+				{
+					"doctype": "Stock Entry Type",
+					"__newname": name,
+					"purpose": purpose,
+					"company": COMPANY,
+				}
+			).insert(ignore_permissions=True)
 
 
 def _shifts():
@@ -148,29 +201,36 @@ def _shifts():
 		("Night", "22:00:00", "06:00:00"),
 	):
 		if not frappe.db.exists("FWMS Shift", name):
-			frappe.get_doc({
-				"doctype": "FWMS Shift",
-				"shift_name": name,
-				"start_time": start,
-				"end_time": end,
-				"break_start": "10:00:00",
-				"break_end": "10:15:00",
-			}).insert(ignore_permissions=True)
+			frappe.get_doc(
+				{
+					"doctype": "FWMS Shift",
+					"shift_name": name,
+					"start_time": start,
+					"end_time": end,
+					"break_start": "10:00:00",
+					"break_end": "10:15:00",
+				}
+			).insert(ignore_permissions=True)
 
 
 def _docks():
 	receiving = frappe.db.get_value("FWMS Zone", {"zone_type": "Receiving Docks"}, "name")
 	shipping = frappe.db.get_value("FWMS Zone", {"zone_type": "Shipping Docks"}, "name")
 	for i in (1, 2, 3):
-		for code, zone, direction in ((f"IN-0{i}", receiving, "Inbound"), (f"OUT-0{i}", shipping, "Outbound")):
+		for code, zone, direction in (
+			(f"IN-0{i}", receiving, "Inbound"),
+			(f"OUT-0{i}", shipping, "Outbound"),
+		):
 			if not frappe.db.exists("FWMS Dock Door", code):
-				frappe.get_doc({
-					"doctype": "FWMS Dock Door",
-					"door_code": code,
-					"zone": zone,
-					"direction": direction,
-					"status": "Idle",
-				}).insert(ignore_permissions=True)
+				frappe.get_doc(
+					{
+						"doctype": "FWMS Dock Door",
+						"door_code": code,
+						"zone": zone,
+						"direction": direction,
+						"status": "Idle",
+					}
+				).insert(ignore_permissions=True)
 
 
 def _bins():
@@ -182,18 +242,20 @@ def _bins():
 	def bin_doc(barcode, zone, abc, pick=False, item=None, minq=None, maxq=None, counted_days_ago=None):
 		if frappe.db.exists("FWMS Bin", barcode):
 			return
-		frappe.get_doc({
-			"doctype": "FWMS Bin",
-			"barcode": barcode,
-			"zone": zone,
-			"abc_class": abc,
-			"is_pick_face": 1 if pick else 0,
-			"primary_item": item,
-			"min_qty": minq,
-			"max_qty": maxq,
-			"aisle": barcode.split("-")[1] if "-" in barcode else None,
-			"last_counted_on": add_days(today(), -(counted_days_ago or random.randint(5, 100))),
-		}).insert(ignore_permissions=True)
+		frappe.get_doc(
+			{
+				"doctype": "FWMS Bin",
+				"barcode": barcode,
+				"zone": zone,
+				"abc_class": abc,
+				"is_pick_face": 1 if pick else 0,
+				"primary_item": item,
+				"min_qty": minq,
+				"max_qty": maxq,
+				"aisle": barcode.split("-")[1] if "-" in barcode else None,
+				"last_counted_on": add_days(today(), -(counted_days_ago or random.randint(5, 100))),
+			}
+		).insert(ignore_permissions=True)
 
 	# bulk: 5 aisles x 2 racks x 4 bins = 40
 	for a in range(1, 6):
@@ -205,8 +267,15 @@ def _bins():
 		item = None
 		if i <= 18:
 			item = ITEMS[(i - 1) % 6][0]  # first 6 items get 3 faces each
-		bin_doc(f"PICK-{i:02d}", pick_zone, "A" if i <= 12 else "B", pick=True,
-				item=item, minq=20 if item else None, maxq=100 if item else None)
+		bin_doc(
+			f"PICK-{i:02d}",
+			pick_zone,
+			"A" if i <= 12 else "B",
+			pick=True,
+			item=item,
+			minq=20 if item else None,
+			maxq=100 if item else None,
+		)
 	# staging + qc
 	for i in range(1, 5):
 		bin_doc(f"RCV-STG-{i}", receiving_zone, "A")
@@ -216,42 +285,63 @@ def _bins():
 def _workers():
 	shifts = frappe.get_all("FWMS Shift", pluck="name")
 	# roles
-	frappe.get_doc({
-		"doctype": "User",
-		"email": "supervisor@fwms.local",
-		"first_name": "Warehouse",
-		"last_name": "Supervisor",
-		"send_welcome_email": 0,
-		"roles": [{"role": "FWMS Supervisor"}, {"role": "FWMS Inventory Control"}],
-	}).insert(ignore_permissions=True) if not frappe.db.exists("User", "supervisor@fwms.local") else None
+	frappe.get_doc(
+		{
+			"doctype": "User",
+			"email": "supervisor@fwms.local",
+			"first_name": "Warehouse",
+			"last_name": "Supervisor",
+			"send_welcome_email": 0,
+			"roles": [{"role": "FWMS Supervisor"}, {"role": "FWMS Inventory Control"}],
+		}
+	).insert(ignore_permissions=True) if not frappe.db.exists("User", "supervisor@fwms.local") else None
 
 	for i in range(1, 27):
 		code = f"W{i:03d}"
 		email = f"{code.lower()}@fwms.local"
 		if not frappe.db.exists("User", email):
-			user = frappe.get_doc({
-				"doctype": "User",
-				"email": email,
-				"first_name": FIRST_NAMES[i - 1],
-				"last_name": LAST_NAMES[i - 1],
-				"send_welcome_email": 0,
-				"roles": [{"role": "FWMS Operator"}],
-			})
+			user = frappe.get_doc(
+				{
+					"doctype": "User",
+					"email": email,
+					"first_name": FIRST_NAMES[i - 1],
+					"last_name": LAST_NAMES[i - 1],
+					"send_welcome_email": 0,
+					"roles": [{"role": "FWMS Operator"}],
+				}
+			)
 			user.insert(ignore_permissions=True)
 		if frappe.db.exists("FWMS Worker", code):
 			continue
-		worker = frappe.get_doc({
-			"doctype": "FWMS Worker",
-			"worker_code": code,
-			"person_name": f"{FIRST_NAMES[i - 1]} {LAST_NAMES[i - 1]}",
-			"user": email,
-			"shift": shifts[(i - 1) % len(shifts)],
-			"default_zone": frappe.db.get_value(
-				"FWMS Zone", {"zone_type": ["Receiving Docks", "Bulk", "Pick Faces", "Packing", "Shipping Docks"][i % 5]}, "name"
-			),
-			"skills": random.choice([None, "Pick, Pack", "Receive, Putaway", "Count, Replenish", "Receive, Quality", "Quality, Scrap"]),
-			"active": 1,
-		})
+		worker = frappe.get_doc(
+			{
+				"doctype": "FWMS Worker",
+				"worker_code": code,
+				"person_name": f"{FIRST_NAMES[i - 1]} {LAST_NAMES[i - 1]}",
+				"user": email,
+				"shift": shifts[(i - 1) % len(shifts)],
+				"default_zone": frappe.db.get_value(
+					"FWMS Zone",
+					{
+						"zone_type": ["Receiving Docks", "Bulk", "Pick Faces", "Packing", "Shipping Docks"][
+							i % 5
+						]
+					},
+					"name",
+				),
+				"skills": random.choice(
+					[
+						None,
+						"Pick, Pack",
+						"Receive, Putaway",
+						"Count, Replenish",
+						"Receive, Quality",
+						"Quality, Scrap",
+					]
+				),
+				"active": 1,
+			}
+		)
 		worker.insert(ignore_permissions=True)
 		worker.set_pin(f"{i:04d}")
 
@@ -260,66 +350,82 @@ def _items(pick_wh):
 	for idx, (code, name, group, batched, serial, tariff, origin, rate) in enumerate(ITEMS):
 		if frappe.db.exists("Item", code):
 			continue
-		frappe.get_doc({
-			"doctype": "Item",
-			"item_code": code,
-			"item_group": _item_group(group),
-			"stock_uom": "Nos",
-			"description": name,
-			"maintain_stock": 1,
-			"is_stock_item": 1,
-			"has_batch_no": 1 if batched else 0,
-			"create_new_batch": 1 if batched else 0,
-			"has_serial_no": 1 if serial else 0,
-			"has_expiry_date": 0,
-			"end_of_life": add_days(today(), 720),
-			"standard_rate": rate,
-			"customs_tariff_number": tariff if frappe.db.exists("Customs Tariff Number", tariff) else None,
-			"country_of_origin": origin if frappe.db.exists("Country", origin) else None,
-			"is_sales_item": 1,
-			"is_purchase_item": 1,
-			"item_defaults": [{"company": COMPANY, "default_warehouse": pick_wh}],
-			"barcodes": [{"barcode": _ean13(200000000000 + idx + 1), "barcode_type": "EAN"}],
-		}).insert(ignore_permissions=True)
+		frappe.get_doc(
+			{
+				"doctype": "Item",
+				"item_code": code,
+				"item_group": _item_group(group),
+				"stock_uom": "Nos",
+				"description": name,
+				"maintain_stock": 1,
+				"is_stock_item": 1,
+				"has_batch_no": 1 if batched else 0,
+				"create_new_batch": 1 if batched else 0,
+				"has_serial_no": 1 if serial else 0,
+				"has_expiry_date": 0,
+				"end_of_life": add_days(today(), 720),
+				"standard_rate": rate,
+				"customs_tariff_number": tariff
+				if frappe.db.exists("Customs Tariff Number", tariff)
+				else None,
+				"country_of_origin": origin if frappe.db.exists("Country", origin) else None,
+				"is_sales_item": 1,
+				"is_purchase_item": 1,
+				"item_defaults": [{"company": COMPANY, "default_warehouse": pick_wh}],
+				"barcodes": [{"barcode": _ean13(200000000000 + idx + 1), "barcode_type": "EAN"}],
+			}
+		).insert(ignore_permissions=True)
 
 
 def _ean13(base12: int) -> str:
 	"""Turn a 12-digit number into a valid EAN-13 (with checksum)."""
 	digits = [int(c) for c in str(base12)]
 	weights = [1, 3] * 6
-	checksum = (10 - sum(d * w for d, w in zip(digits, weights)) % 10) % 10
+	checksum = (10 - sum(d * w for d, w in zip(digits, weights, strict=False)) % 10) % 10
 	return "".join(map(str, digits)) + str(checksum)
 
 
 def _item_group(name):
 	if not frappe.db.exists("Item Group", name):
-		frappe.get_doc({
-			"doctype": "Item Group",
-			"item_group_name": name,
-			"parent_item_group": "All Item Groups",
-			"is_group": 0,
-		}).insert(ignore_permissions=True)
+		frappe.get_doc(
+			{
+				"doctype": "Item Group",
+				"item_group_name": name,
+				"parent_item_group": "All Item Groups",
+				"is_group": 0,
+			}
+		).insert(ignore_permissions=True)
 	return name
 
 
 def _parties():
 	for name, country in SUPPLIERS:
 		if not frappe.db.exists("Supplier", name):
-			frappe.get_doc({
-				"doctype": "Supplier",
-				"supplier_name": name,
-				"supplier_group": "All Supplier Groups" if frappe.db.exists("Supplier Group", "All Supplier Groups") else None,
-				"country": country,
-			}).insert(ignore_permissions=True)
+			frappe.get_doc(
+				{
+					"doctype": "Supplier",
+					"supplier_name": name,
+					"supplier_group": "All Supplier Groups"
+					if frappe.db.exists("Supplier Group", "All Supplier Groups")
+					else None,
+					"country": country,
+				}
+			).insert(ignore_permissions=True)
 	for name, country in CUSTOMERS:
 		if not frappe.db.exists("Customer", name):
-			frappe.get_doc({
-				"doctype": "Customer",
-				"customer_name": name,
-				"customer_group": "All Customer Groups" if frappe.db.exists("Customer Group", "All Customer Groups") else None,
-				"territory": "All Territories" if frappe.db.exists("Territory", "All Territories") else None,
-				"country": country,
-			}).insert(ignore_permissions=True)
+			frappe.get_doc(
+				{
+					"doctype": "Customer",
+					"customer_name": name,
+					"customer_group": "All Customer Groups"
+					if frappe.db.exists("Customer Group", "All Customer Groups")
+					else None,
+					"territory": "All Territories"
+					if frappe.db.exists("Territory", "All Territories")
+					else None,
+					"country": country,
+				}
+			).insert(ignore_permissions=True)
 
 
 def _stock(bulk_wh, pick_wh, stock_account):
@@ -334,26 +440,30 @@ def _stock(bulk_wh, pick_wh, stock_account):
 
 	def ensure_batch(item, batch_id, expiry: date):
 		if not frappe.db.exists("Batch", batch_id):
-			frappe.get_doc({
-				"doctype": "Batch",
-				"batch_id": batch_id,
-				"item": item,
-				"expiry_date": expiry,
-			}).insert(ignore_permissions=True)
+			frappe.get_doc(
+				{
+					"doctype": "Batch",
+					"batch_id": batch_id,
+					"item": item,
+					"expiry_date": expiry,
+				}
+			).insert(ignore_permissions=True)
 		return batch_id
 
 	def tote(barcode, zone, bin_name, contents):
 		if frappe.db.exists("FWMS LPN", barcode):
 			return barcode
-		frappe.get_doc({
-			"doctype": "FWMS LPN",
-			"barcode": barcode,
-			"lpn_type": "Pallet" if barcode.startswith("PLT") else "Tote",
-			"status": "In Bin",
-			"zone": zone,
-			"bin": bin_name,
-			"items": contents,
-		}).insert(ignore_permissions=True)
+		frappe.get_doc(
+			{
+				"doctype": "FWMS LPN",
+				"barcode": barcode,
+				"lpn_type": "Pallet" if barcode.startswith("PLT") else "Tote",
+				"status": "In Bin",
+				"zone": zone,
+				"bin": bin_name,
+				"items": contents,
+			}
+		).insert(ignore_permissions=True)
 		return barcode
 
 	today_d = frappe.utils.getdate(today())
@@ -376,7 +486,7 @@ def _stock(bulk_wh, pick_wh, stock_account):
 		if serials:
 			row.serial_no = "\n".join(serials)
 
-	for code, name, group, batched, serial, *_ in ITEMS:
+	for code, _name, _group, batched, serial, *_ in ITEMS:
 		if batched:
 			# three batches per item with different expiries (FEFO demo)
 			for tag, days in (("A", 90), ("B", 30), ("C", 200)):
@@ -386,7 +496,9 @@ def _stock(bulk_wh, pick_wh, stock_account):
 				add_receipt(code, qty, batch_id)
 				lpn_no += 1
 				tote(
-					f"LPN-{lpn_no:06d}", bulk_zone, bulk_bins[lpn_no % len(bulk_bins)],
+					f"LPN-{lpn_no:06d}",
+					bulk_zone,
+					bulk_bins[lpn_no % len(bulk_bins)],
 					[{"item": code, "qty": qty, "batch_no": batch_id, "uom": "Nos"}],
 				)
 		elif serial:
@@ -394,14 +506,18 @@ def _stock(bulk_wh, pick_wh, stock_account):
 			add_receipt(code, 25, serials=serials)
 			lpn_no += 1
 			tote(
-				f"LPN-{lpn_no:06d}", bulk_zone, bulk_bins[lpn_no % len(bulk_bins)],
+				f"LPN-{lpn_no:06d}",
+				bulk_zone,
+				bulk_bins[lpn_no % len(bulk_bins)],
 				[{"item": code, "qty": 25, "uom": "Nos"}],
 			)
 		else:
 			add_receipt(code, 80)
 			lpn_no += 1
 			tote(
-				f"LPN-{lpn_no:06d}", bulk_zone, bulk_bins[lpn_no % len(bulk_bins)],
+				f"LPN-{lpn_no:06d}",
+				bulk_zone,
+				bulk_bins[lpn_no % len(bulk_bins)],
 				[{"item": code, "qty": 80, "uom": "Nos"}],
 			)
 
@@ -414,8 +530,10 @@ def _stock(bulk_wh, pick_wh, stock_account):
 	transfer.stock_entry_type = "Material Transfer"
 	transfer.posting_date = nowdate()
 	faces_used = 0
-	for code, name, group, batched, serial, *_ in ITEMS:
-		face = next((b for b in pick_bins if frappe.db.get_value("FWMS Bin", b, "primary_item") == code), None)
+	for code, _name, _group, batched, _serial, *_ in ITEMS:
+		face = next(
+			(b for b in pick_bins if frappe.db.get_value("FWMS Bin", b, "primary_item") == code), None
+		)
 		if not face:
 			continue
 		if batched:
@@ -427,7 +545,12 @@ def _stock(bulk_wh, pick_wh, stock_account):
 			row.t_warehouse = pick_wh
 			row.use_serial_batch_fields = 1
 			row.batch_no = batch_id
-			tote(f"RPL-{face}", pick_zone, face, [{"item": code, "qty": 30, "batch_no": batch_id, "uom": "Nos"}])
+			tote(
+				f"RPL-{face}",
+				pick_zone,
+				face,
+				[{"item": code, "qty": 30, "batch_no": batch_id, "uom": "Nos"}],
+			)
 		else:
 			row = transfer.append("items", {})
 			row.item_code = code

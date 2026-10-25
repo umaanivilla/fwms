@@ -5,4 +5,4 @@ from fwms.gateways.automation_bridge import AutomationBridge
 from fwms.gateways.carrier_gateway import CarrierGateway
 from fwms.gateways.customs_gateway import CustomsGateway
 
-__all__ = ["CarrierGateway", "CustomsGateway", "AutomationBridge"]
+__all__ = ["AutomationBridge", "CarrierGateway", "CustomsGateway"]

@@ -61,7 +61,10 @@ def scan(barcode: str, screen: str = "") -> dict:
 	# bump worker scan counter
 	worker = current_worker()
 	frappe.db.set_value(
-		"FWMS Worker", worker, "scans_today", (frappe.db.get_value("FWMS Worker", worker, "scans_today") or 0) + 1,
+		"FWMS Worker",
+		worker,
+		"scans_today",
+		(frappe.db.get_value("FWMS Worker", worker, "scans_today") or 0) + 1,
 		update_modified=False,
 	)
 	return result

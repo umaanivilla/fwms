@@ -1,22 +1,17 @@
 # FWMS — Manual Test Script
 
-## Starting the system after a computer restart
+## Starting the system
 
-MariaDB and Redis auto-start with WSL (systemd). Only the bench needs starting:
+Ensure MariaDB and Redis are running (on a dev VM they usually auto-start via
+systemd), then start the bench:
 
 ```bash
-bash ~/frappe-bench/start-fwms.sh     # safe to run any time; idempotent
+cd frappe-bench && bench start     # keep the terminal open
 ```
 
-…or simply `cd ~/frappe-bench && bench start` (keep the terminal open). Wait
-for the URL banner, then reload the browser. To auto-start at Windows logon,
-create a Task Scheduler task (run once, as your user, at logon):
+Wait for the URL banner, then reload the browser.
 
-```
-wsl.exe -d Ubuntu -u uma -- bash -lc "cd /home/uma/frappe-bench && nohup bash start-fwms.sh >/tmp/fwms-start.log 2>&1 &"
-```
-
-Walkthrough for a human acceptance pass of the FWMS system on the dev bench.
+Walkthrough for a human acceptance pass of the FWMS system on a dev bench.
 Every step lists **exactly what to do** and **what you should see**. Typing a
 value and pressing **Enter** in any RF scan field is equivalent to scanning a
 barcode — keyboard-wedge scanners work unchanged.
@@ -33,6 +28,11 @@ barcode — keyboard-wedge scanners work unchanged.
 | Desk | [http://localhost:8000/app](http://localhost:8000/app) | Login page |
 
 **Credentials**
+
+> **Demo data only.** These logins exist exclusively on a site where you ran
+> `fwms.setup.seed_demo.run` — they are seeded fixtures, not real accounts, and
+> every value here is published in this repository by design. Never reuse any
+> of them outside a disposable development bench.
 
 | Who | Login | Where |
 |---|---|---|

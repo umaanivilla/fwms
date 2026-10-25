@@ -46,7 +46,8 @@ def task_detail(task: str) -> dict:
 		"source_name": lpn_doc.source_name,
 		"items": [
 			{"item_code": r.item, "qty": flt(r.qty), "batch_no": r.batch_no or None, "uom": r.uom}
-			for r in lpn_doc.items if flt(r.qty) > 0
+			for r in lpn_doc.items
+			if flt(r.qty) > 0
 		],
 	}
 
@@ -73,10 +74,7 @@ def inspect(lpn: str, results: list[dict], task: str | None = None) -> dict:
 	if zone_type != "QC Hold":
 		frappe.throw(f"LPN {lpn} is not in a QC Hold zone (zone: {lpn_doc.zone or 'none'})")
 
-	available = {
-		(r.item, r.batch_no or None): flt(r.qty)
-		for r in lpn_doc.items if flt(r.qty) > 0
-	}
+	available = {(r.item, r.batch_no or None): flt(r.qty) for r in lpn_doc.items if flt(r.qty) > 0}
 	# list, not dict: the same item+batch can carry split verdicts (6 pass / 4 fail)
 	parsed = []
 	for line in results:
@@ -89,9 +87,11 @@ def inspect(lpn: str, results: list[dict], task: str | None = None) -> dict:
 		if qty <= 0 or qty > available[key]:
 			frappe.throw(f"{line['item_code']}: inspect between 1 and {available[key]:g} units")
 		available[key] = available[key] - qty
-		parsed.append({"item_code": line["item_code"], "batch_no": key[1], "qty": qty, "verdict": line["verdict"]})
+		parsed.append(
+			{"item_code": line["item_code"], "batch_no": key[1], "qty": qty, "verdict": line["verdict"]}
+		)
 	if any(q > 0 for q in available.values()):
-		missing = ", ".join(f"{qty:g} × {item}" for (item, _), qty in available.items() if qty > 0)
+		missing = ", ".join(f"{qty:g} × {item}" for (item, _), qty in available.items() if qty > 0)  # noqa: RUF001
 		frappe.throw(f"Every unit must get a verdict — still uninspected: {missing}")
 
 	pass_lines = [l for l in parsed if l["verdict"] == "Pass"]
@@ -131,7 +131,7 @@ def inspect(lpn: str, results: list[dict], task: str | None = None) -> dict:
 	)
 	return {
 		"released": released,  # {stock_entry, lpn, bin, zone} | None
-		"held": fail_lines,   # ready for the Scrap flow if the operator chooses
+		"held": fail_lines,  # ready for the Scrap flow if the operator chooses
 		"quality_inspections": qis,
 		"task": task,
 		"message": note,
@@ -174,8 +174,7 @@ def _release_partial(lpn_doc, pass_lines: list[dict], worker: str) -> dict:
 	se.fwms_worker = worker
 	for (item, batch), qty in release.items():
 		match = next(
-			(r for r in lpn_doc.items
-				if r.item == item and (r.batch_no or None) == batch),
+			(r for r in lpn_doc.items if r.item == item and (r.batch_no or None) == batch),
 			None,
 		)
 		row = se.append("items", {})
@@ -210,18 +209,20 @@ def _release_partial(lpn_doc, pass_lines: list[dict], worker: str) -> dict:
 	tote.source_doctype = lpn_doc.source_doctype
 	tote.source_name = lpn_doc.source_name
 	for (item, batch), qty in release.items():
-		tote.append("items", {
-			"item": item,
-			"qty": qty,
-			"batch_no": batch,
-		})
+		tote.append(
+			"items",
+			{
+				"item": item,
+				"qty": qty,
+				"batch_no": batch,
+			},
+		)
 	tote.insert(ignore_permissions=True)
 
 	# pull the released units out of the held LPN
 	for (item, batch), qty in release.items():
 		match = next(
-			(r for r in lpn_doc.items
-				if r.item == item and (r.batch_no or None) == batch),
+			(r for r in lpn_doc.items if r.item == item and (r.batch_no or None) == batch),
 			None,
 		)
 		if match:

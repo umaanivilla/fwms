@@ -12,10 +12,10 @@ from fwms.tasks import create_task
 from fwms.utils import get_warehouse_for_type as _zone_warehouse
 
 GRADE_WAREHOUSE_ZONE = {
-	"A": "Pick Faces",   # resellable
-	"B": "QC Hold",      # needs inspection
-	"Refurb": "Bulk",    # refurbish later
-	"Scrap": "Scrap",    # scrap warehouse (Scrap zone)
+	"A": "Pick Faces",  # resellable
+	"B": "QC Hold",  # needs inspection
+	"Refurb": "Bulk",  # refurbish later
+	"Scrap": "Scrap",  # scrap warehouse (Scrap zone)
 }
 
 
@@ -31,12 +31,14 @@ def dn_info(delivery_note: str) -> dict:
 		returnable = flt(row.qty) - flt(row.returned_qty)
 		if returnable <= 0:
 			continue
-		items.append({
-			"item_code": row.item_code,
-			"item_name": row.item_name,
-			"returnable_qty": returnable,
-			"name": row.name,
-		})
+		items.append(
+			{
+				"item_code": row.item_code,
+				"item_name": row.item_name,
+				"returnable_qty": returnable,
+				"name": row.name,
+			}
+		)
 	return {"delivery_note": delivery_note, "customer": dn.customer, "items": items}
 
 
@@ -95,19 +97,21 @@ def process_return(delivery_note: str, lines: list[dict]) -> dict:
 			zone = frappe.db.get_value("FWMS Zone", {"zone_type": zone_type}, "name")
 			lpn_barcode = f"RET-{ret.name}"
 			if not frappe.db.exists("FWMS LPN", lpn_barcode):
-				frappe.get_doc({
-					"doctype": "FWMS LPN",
-					"barcode": lpn_barcode,
-					"lpn_type": "Tote",
-					"status": "In Bin",
-					"zone": zone,
-					"source_doctype": "Delivery Note",
-					"source_name": delivery_note,
-					"items": [
-						{"item": l["item_code"], "qty": flt(l["qty"]), "batch_no": l.get("batch_no")}
-						for l in grade_lines
-					],
-				}).insert(ignore_permissions=True)
+				frappe.get_doc(
+					{
+						"doctype": "FWMS LPN",
+						"barcode": lpn_barcode,
+						"lpn_type": "Tote",
+						"status": "In Bin",
+						"zone": zone,
+						"source_doctype": "Delivery Note",
+						"source_name": delivery_note,
+						"items": [
+							{"item": l["item_code"], "qty": flt(l["qty"]), "batch_no": l.get("batch_no")}
+							for l in grade_lines
+						],
+					}
+				).insert(ignore_permissions=True)
 			if grade == "B":
 				# grade B lands on QC Hold — queue a Quality inspection for it
 				create_task(
@@ -115,11 +119,13 @@ def process_return(delivery_note: str, lines: list[dict]) -> dict:
 					qty=sum(flt(l["qty"]) for l in grade_lines),
 					lpn=lpn_barcode,
 					priority="2-Normal",
-					references=[{
-						"reference_doctype": "Delivery Note",
-						"reference_name": delivery_note,
-						"note": "grade B return inspection",
-					}],
+					references=[
+						{
+							"reference_doctype": "Delivery Note",
+							"reference_name": delivery_note,
+							"note": "grade B return inspection",
+						}
+					],
 				)
 
 		emit(

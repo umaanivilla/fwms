@@ -9,13 +9,16 @@ from frappe.utils import flt
 class FWMSConsignment(Document):
 	def before_save(self):
 		if not self.package_count:
-			self.package_count = frappe.db.count(
-				"FWMS LPN",
-				{
-					"delivery_note": ("in", [d.delivery_note for d in self.delivery_notes]),
-					"status": "Shipped",
-				},
-			) or None
+			self.package_count = (
+				frappe.db.count(
+					"FWMS LPN",
+					{
+						"delivery_note": ("in", [d.delivery_note for d in self.delivery_notes]),
+						"status": "Shipped",
+					},
+				)
+				or None
+			)
 
 	def get_lines(self) -> list[dict]:
 		"""Consolidated lines across the consignment's Delivery Notes with
@@ -43,7 +46,8 @@ class FWMSConsignment(Document):
 		out = []
 		for line in lines.values():
 			item = frappe.db.get_value(
-				"Item", line["item_code"],
+				"Item",
+				line["item_code"],
 				["customs_tariff_number", "country_of_origin", "item_name"],
 				as_dict=True,
 			)
@@ -58,25 +62,26 @@ class FWMSConsignment(Document):
 		if not dns:
 			return []
 		cartons = []
-		for lpn_name in frappe.get_all(
-			"FWMS LPN", filters={"delivery_note": ("in", dns)}, pluck="name"
-		):
+		for lpn_name in frappe.get_all("FWMS LPN", filters={"delivery_note": ("in", dns)}, pluck="name"):
 			lpn = frappe.get_doc("FWMS LPN", lpn_name)
-			cartons.append({
-				"carton": lpn.name,
-				"items": [
-					{"item": r.item, "qty": flt(r.qty), "batch_no": r.batch_no}
-					for r in lpn.items or []
-				],
-				"zone": lpn.zone,
-			})
+			cartons.append(
+				{
+					"carton": lpn.name,
+					"items": [
+						{"item": r.item, "qty": flt(r.qty), "batch_no": r.batch_no} for r in lpn.items or []
+					],
+					"zone": lpn.zone,
+				}
+			)
 		return cartons
 
 	def get_parties(self) -> dict:
 		first_dn = self.delivery_notes[0].delivery_note if self.delivery_notes else None
 		customer = None
 		if first_dn:
-			customer = frappe.db.get_value("Delivery Note", first_dn, ["customer", "customer_name"], as_dict=True)
+			customer = frappe.db.get_value(
+				"Delivery Note", first_dn, ["customer", "customer_name"], as_dict=True
+			)
 		company = frappe.db.get_single_value("FWMS Settings", "company") or None
 		return {
 			"customer": customer.customer if customer else None,

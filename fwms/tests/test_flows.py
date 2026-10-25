@@ -25,10 +25,7 @@ class TestCycleCount(FrappeTestCase):
 		expected = get_bin_stock(bin_name)
 		self.assertTrue(expected, "stocked bin required")
 
-		counted = [
-			{"item": r["item"], "qty": r["qty"] - 1, "batch_no": r.get("batch_no")}
-			for r in expected
-		]
+		counted = [{"item": r["item"], "qty": r["qty"] - 1, "batch_no": r.get("batch_no")} for r in expected]
 		out = rf_count.submit(bin_name=bin_name, counted=counted, task=None)
 
 		# one unit short per stocked line

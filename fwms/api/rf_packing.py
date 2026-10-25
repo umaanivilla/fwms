@@ -49,7 +49,10 @@ def start(cart: str) -> dict:
 
 def _resolve_dn(cart_doc) -> str | None:
 	"""cart -> sales order -> wave order -> draft DN (fallback: DN containing the cart items)."""
-	if cart_doc.delivery_note and frappe.db.get_value("Delivery Note", cart_doc.delivery_note, "docstatus") == 0:
+	if (
+		cart_doc.delivery_note
+		and frappe.db.get_value("Delivery Note", cart_doc.delivery_note, "docstatus") == 0
+	):
 		return cart_doc.delivery_note
 	if cart_doc.sales_order:
 		dn = frappe.db.get_value("FWMS Wave Order", {"sales_order": cart_doc.sales_order}, "delivery_note")
@@ -58,7 +61,9 @@ def _resolve_dn(cart_doc) -> str | None:
 	# fallback: newest draft DN that contains all the cart's items
 	cart_items = {r.item for r in cart_doc.items or []}
 	if cart_items:
-		for dn_name in frappe.get_all("Delivery Note", {"docstatus": 0}, pluck="name", order_by="creation desc", limit=20):
+		for dn_name in frappe.get_all(
+			"Delivery Note", {"docstatus": 0}, pluck="name", order_by="creation desc", limit=20
+		):
 			dn_items = set(frappe.get_all("Delivery Note Item", {"parent": dn_name}, pluck="item_code"))
 			if dn_items and cart_items.issubset(dn_items):
 				return dn_name

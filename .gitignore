@@ -53,3 +53,14 @@ jspm_packages/
 
 # Aider AI Chat
 .aider*
+
+# Local AI-agent / Entire.io tooling (developer-specific, not part of the app)
+.agents/
+.claude/
+.codex/
+.cursor/
+.factory/
+.opencode/
+.pi/
+.entire/
+.github/hooks/entire.json

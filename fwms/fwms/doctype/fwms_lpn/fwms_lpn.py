@@ -27,8 +27,14 @@ def find_lpn_by_barcode(barcode: str) -> str | None:
 	return None
 
 
-def add_contents(lpn_name: str, item: str, qty: float, batch_no: str | None = None,
-	serial_and_batch_bundle: str | None = None, uom: str | None = None) -> None:
+def add_contents(
+	lpn_name: str,
+	item: str,
+	qty: float,
+	batch_no: str | None = None,
+	serial_and_batch_bundle: str | None = None,
+	uom: str | None = None,
+) -> None:
 	"""Accumulate qty onto an existing (item, batch) row or append a new row."""
 	lpn = frappe.get_doc("FWMS LPN", lpn_name)
 	uom = uom or frappe.db.get_value("Item", item, "stock_uom")
@@ -39,13 +45,16 @@ def add_contents(lpn_name: str, item: str, qty: float, batch_no: str | None = No
 				row.serial_and_batch_bundle = serial_and_batch_bundle
 			break
 	else:
-		lpn.append("items", {
-			"item": item,
-			"qty": flt(qty),
-			"batch_no": batch_no,
-			"serial_and_batch_bundle": serial_and_batch_bundle,
-			"uom": uom,
-		})
+		lpn.append(
+			"items",
+			{
+				"item": item,
+				"qty": flt(qty),
+				"batch_no": batch_no,
+				"serial_and_batch_bundle": serial_and_batch_bundle,
+				"uom": uom,
+			},
+		)
 	lpn.save(ignore_permissions=True)
 
 
@@ -56,8 +65,10 @@ def remove_contents(lpn_name: str, item: str, qty: float, batch_no: str | None =
 	for row in lpn.items or []:
 		if row.item == item and (row.batch_no or None) == (batch_no or None):
 			if flt(row.qty) < qty:
-				frappe.throw(f"LPN {lpn_name} has only {row.qty} of {item}"
-					f" (batch {batch_no or '-'}) — cannot remove {qty}")
+				frappe.throw(
+					f"LPN {lpn_name} has only {row.qty} of {item}"
+					f" (batch {batch_no or '-'}) — cannot remove {qty}"
+				)
 			row.qty = flt(row.qty) - qty
 			break
 	else:
@@ -65,8 +76,9 @@ def remove_contents(lpn_name: str, item: str, qty: float, batch_no: str | None =
 	lpn.save(ignore_permissions=True)
 
 
-def move_lpn(lpn_name: str, bin_name: str | None, zone: str | None = None,
-	status: str | None = None) -> "FWMSLPN":
+def move_lpn(
+	lpn_name: str, bin_name: str | None, zone: str | None = None, status: str | None = None
+) -> "FWMSLPN":
 	"""Move an LPN to a bin/zone and optionally change status."""
 	lpn = frappe.get_doc("FWMS LPN", lpn_name)
 	if bin_name:

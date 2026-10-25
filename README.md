@@ -1,12 +1,14 @@
 # FWMS — Warehouse Management on Frappe / ERPNext v16
 
+[![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
+
 FWMS turns warehouse floor operations into real ERPNext documents. RF-scan-driven
 flows (receiving, putaway, picking, packing, loading, counting, replenishment,
 returns) run against native ERP doctypes — Purchase Receipt, Stock Entry, Pick
 List, Packing Slip, Delivery Note, Stock Reconciliation, Quality Inspection —
 while a live floor-view dashboard visualises the warehouse in realtime.
 
-Built and tested on: **Frappe 16.x + ERPNext 16.x, Python 3.14, WSL2 bench.**
+Built and tested on: **Frappe 16.x + ERPNext 16.x, Python 3.14, MariaDB 11.8.**
 
 ## Layout
 
@@ -151,13 +153,12 @@ function errors behind its eval fallback).
 
 ## Contributing
 
-This app uses `pre-commit` (ruff, eslint, prettier, pyupgrade):
-
-```bash
-cd apps/fwms
-pre-commit install
-```
+See [CONTRIBUTING.md](CONTRIBUTING.md). The app uses `pre-commit`
+(ruff, ruff-format, eslint, prettier) and ships an integration test suite —
+`bench --site yoursite run-tests --app fwms` — that runs against a seeded site.
 
 ## License
 
-MIT
+Copyright (c) 2026 Uma Anivilla. Released under the [GNU GPL v3](license.txt),
+the same license as ERPNext — FWMS links against and extends ERPNext, and
+stays copyleft with it.

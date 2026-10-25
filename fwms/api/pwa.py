@@ -47,10 +47,14 @@ MANIFEST_JSON = """{
 def service_worker():
 	"""Raw JS response — a whitelisted method may return a werkzeug Response
 	(frappe.handler passes it through)."""
-	return Response(SERVICE_WORKER_JS, mimetype="application/javascript", headers={
-		"Service-Worker-Allowed": "/rf",
-		"Cache-Control": "no-cache",
-	})
+	return Response(
+		SERVICE_WORKER_JS,
+		mimetype="application/javascript",
+		headers={
+			"Service-Worker-Allowed": "/rf",
+			"Cache-Control": "no-cache",
+		},
+	)
 
 
 @frappe.whitelist(allow_guest=True)
@@ -64,5 +68,6 @@ def csrf():
 
 @frappe.whitelist(allow_guest=True, methods=["GET", "POST"])
 def manifest():
-	return Response(MANIFEST_JSON, mimetype="application/manifest+json",
-		headers={"Cache-Control": "no-cache"})
+	return Response(
+		MANIFEST_JSON, mimetype="application/manifest+json", headers={"Cache-Control": "no-cache"}
+	)

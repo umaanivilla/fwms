@@ -17,7 +17,8 @@ def login(worker_code: str, pin: str) -> dict:
 		frappe.throw("Invalid worker code or PIN", frappe.AuthenticationError)
 
 	worker = frappe.db.get_value(
-		"FWMS Worker", worker_name,
+		"FWMS Worker",
+		worker_name,
 		["name", "worker_code", "person_name", "user", "default_zone", "shift", "skills", "active"],
 		as_dict=True,
 	)
@@ -46,7 +47,8 @@ def login(worker_code: str, pin: str) -> dict:
 def me() -> dict:
 	require_operator()
 	worker = frappe.db.get_value(
-		"FWMS Worker", {"user": frappe.session.user},
+		"FWMS Worker",
+		{"user": frappe.session.user},
 		["name", "worker_code", "person_name", "default_zone", "shift", "skills", "current_task"],
 		as_dict=True,
 	)

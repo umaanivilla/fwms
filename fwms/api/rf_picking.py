@@ -13,16 +13,21 @@ from fwms.utils import get_next_lpn_barcode
 
 
 @frappe.whitelist()
-def claim(worker: str | None = None, cart_barcode: str | None = None) -> dict:
-	"""Claim the next Pick task and bind a cart LPN to it."""
+def claim(cart_barcode: str | None = None) -> dict:
+	"""Claim the next Pick task and bind a cart LPN to it.
+
+	Task attribution always comes from the authenticated session — a client
+	supplied worker code is never trusted.
+	"""
 	require_operator()
-	worker = worker or current_worker()
+	worker = current_worker()
 	task_name = claim_next(worker, task_type="Pick")
 	if not task_name:
 		return {"task": None, "message": "No pick tasks in queue"}
 
 	task = frappe.db.get_value(
-		"FWMS Task", task_name,
+		"FWMS Task",
+		task_name,
 		["name", "item", "qty", "batch_no", "from_bin", "wave", "priority"],
 		as_dict=True,
 	)
@@ -37,13 +42,15 @@ def _ensure_cart(cart_barcode: str | None, worker: str) -> str:
 		return cart_barcode
 	barcode = cart_barcode or get_next_lpn_barcode("Cart")
 	if not frappe.db.exists("FWMS LPN", barcode):
-		frappe.get_doc({
-			"doctype": "FWMS LPN",
-			"barcode": barcode,
-			"lpn_type": "Cart",
-			"status": "Picking",
-			"zone": frappe.db.get_value("FWMS Zone", {"zone_type": "Pick Faces"}, "name"),
-		}).insert(ignore_permissions=True)
+		frappe.get_doc(
+			{
+				"doctype": "FWMS LPN",
+				"barcode": barcode,
+				"lpn_type": "Cart",
+				"status": "Picking",
+				"zone": frappe.db.get_value("FWMS Zone", {"zone_type": "Pick Faces"}, "name"),
+			}
+		).insert(ignore_permissions=True)
 	return barcode
 
 
@@ -56,14 +63,16 @@ def task_detail(task: str) -> dict:
 	for ref in task_doc.references or []:
 		if ref.reference_doctype == "Pick List Item" and ref.reference_name:
 			pl_row = frappe.db.get_value(
-				"Pick List Item", ref.reference_name,
+				"Pick List Item",
+				ref.reference_name,
 				["name", "parent", "picked_qty", "qty", "sales_order"],
 				as_dict=True,
 			)
 		if ref.reference_doctype == "Pick List" and ref.reference_name:
 			if not pl_row:
 				pl_row = frappe.db.get_value(
-					"Pick List Item", ref.reference_name,
+					"Pick List Item",
+					ref.reference_name,
 					["name", "parent", "picked_qty", "qty", "sales_order"],
 					as_dict=True,
 				)
@@ -133,21 +142,28 @@ def pick_confirm(task: str, qty: float, cart: str, scanned_serials: list[str] | 
 			pl_row_name = ref.reference_name
 			if ref.reference_doctype == "Pick List":
 				pl_row_name = frappe.db.get_value(
-					"Pick List Item", {"parent": ref.reference_name, "item_code": task_doc.item},
+					"Pick List Item",
+					{"parent": ref.reference_name, "item_code": task_doc.item},
 					"name",
 				)
 			break
 	if pl_row_name:
-		row = frappe.db.get_value("Pick List Item", pl_row_name, ["picked_qty", "parent", "sales_order"], as_dict=True)
+		row = frappe.db.get_value(
+			"Pick List Item", pl_row_name, ["picked_qty", "parent", "sales_order"], as_dict=True
+		)
 		frappe.db.set_value("Pick List Item", pl_row_name, "picked_qty", flt(row.picked_qty) + qty)
 		# record scanned serials on the row (old fields path)
 		if scanned_serials:
 			existing = frappe.db.get_value("Pick List Item", pl_row_name, "serial_no") or ""
 			merged = "\n".join(filter(None, [existing, *scanned_serials]))
-			frappe.db.set_value("Pick List Item", pl_row_name, {
-				"serial_no": merged,
-				"use_serial_batch_fields": 1,
-			})
+			frappe.db.set_value(
+				"Pick List Item",
+				pl_row_name,
+				{
+					"serial_no": merged,
+					"use_serial_batch_fields": 1,
+				},
+			)
 		# bind the cart to its order so packing resolves the right DN
 		if row.sales_order and not frappe.db.get_value("FWMS LPN", cart, "sales_order"):
 			frappe.db.set_value("FWMS LPN", cart, "sales_order", row.sales_order, update_modified=False)
@@ -180,7 +196,8 @@ def _maybe_complete_wave(wave: str | None) -> None:
 	if not wave:
 		return
 	remaining = frappe.db.count(
-		"FWMS Task", {"wave": wave, "task_type": "Pick", "status": ("in", ("Open", "Assigned", "In Progress"))}
+		"FWMS Task",
+		{"wave": wave, "task_type": "Pick", "status": ("in", ("Open", "Assigned", "In Progress"))},
 	)
 	if remaining:
 		return
@@ -241,6 +258,4 @@ def _link_wave_orders(wave: str, dn_names: list[str]) -> None:
 			continue
 		row_name = frappe.db.get_value("FWMS Wave Order", {"parent": wave, "sales_order": so}, "name")
 		if row_name:
-			frappe.db.set_value(
-				"FWMS Wave Order", row_name, "delivery_note", dn_name, update_modified=False
-			)
+			frappe.db.set_value("FWMS Wave Order", row_name, "delivery_note", dn_name, update_modified=False)

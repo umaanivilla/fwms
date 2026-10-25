@@ -31,13 +31,15 @@ def create_task(
 	**fields,
 ) -> str:
 	"""Create an Open task. `fields` map to FWMS Task columns (item, qty, lpn, from_bin, to_bin, wave...)."""
-	doc = frappe.get_doc({
-		"doctype": "FWMS Task",
-		"task_type": task_type,
-		"priority": priority,
-		"status": "Open",
-		**fields,
-	})
+	doc = frappe.get_doc(
+		{
+			"doctype": "FWMS Task",
+			"task_type": task_type,
+			"priority": priority,
+			"status": "Open",
+			**fields,
+		}
+	)
 	for ref in references or []:
 		doc.append("references", ref)
 	doc.insert(ignore_permissions=True)
@@ -65,7 +67,6 @@ def claim_next(worker: str, task_type: str | None = None) -> str | None:
 		frappe.throw(f"Worker {worker} already has an assigned task")
 
 	skills = _worker_skills(worker)
-	default_zone = frappe.db.get_value("FWMS Worker", worker, "default_zone")
 
 	filters = {"status": "Open"}
 	if task_type:
@@ -83,11 +84,16 @@ def claim_next(worker: str, task_type: str | None = None) -> str | None:
 	for task in tasks:
 		if skills and task.task_type not in skills:
 			continue
-		frappe.db.set_value("FWMS Task", task.name, {
-			"status": "Assigned",
-			"worker": worker,
-			"assigned_at": now(),
-		}, update_modified=True)
+		frappe.db.set_value(
+			"FWMS Task",
+			task.name,
+			{
+				"status": "Assigned",
+				"worker": worker,
+				"assigned_at": now(),
+			},
+			update_modified=True,
+		)
 		frappe.db.set_value("FWMS Worker", worker, "current_task", task.name, update_modified=False)
 		emit(
 			TASK_CATEGORY.get(task.task_type, "Alerts & Supervisor"),
@@ -110,16 +116,27 @@ def start_task(task_name: str, worker: str | None = None) -> None:
 
 def complete_task(task_name: str, result_note: str | None = None) -> None:
 	task = frappe.db.get_value("FWMS Task", task_name, ["worker", "task_type"], as_dict=True)
-	frappe.db.set_value("FWMS Task", task_name, {
-		"status": "Complete",
-		"completed_at": now(),
-		"result_note": result_note,
-	}, update_modified=True)
+	frappe.db.set_value(
+		"FWMS Task",
+		task_name,
+		{
+			"status": "Complete",
+			"completed_at": now(),
+			"result_note": result_note,
+		},
+		update_modified=True,
+	)
 	if task and task.worker:
-		frappe.db.set_value("FWMS Worker", task.worker, {
-			"current_task": None,
-			"tasks_completed": (frappe.db.get_value("FWMS Worker", task.worker, "tasks_completed") or 0) + 1,
-		}, update_modified=False)
+		frappe.db.set_value(
+			"FWMS Worker",
+			task.worker,
+			{
+				"current_task": None,
+				"tasks_completed": (frappe.db.get_value("FWMS Worker", task.worker, "tasks_completed") or 0)
+				+ 1,
+			},
+			update_modified=False,
+		)
 	emit(
 		TASK_CATEGORY.get(task.task_type if task else "", "Alerts & Supervisor"),
 		f"Task {task_name} complete",
@@ -131,11 +148,16 @@ def complete_task(task_name: str, result_note: str | None = None) -> None:
 
 
 def cancel_task(task_name: str, reason: str | None = None) -> None:
-	frappe.db.set_value("FWMS Task", task_name, {
-		"status": "Cancelled",
-		"completed_at": now(),
-		"result_note": reason,
-	}, update_modified=True)
+	frappe.db.set_value(
+		"FWMS Task",
+		task_name,
+		{
+			"status": "Cancelled",
+			"completed_at": now(),
+			"result_note": reason,
+		},
+		update_modified=True,
+	)
 
 
 def assign_to_next_worker(doctype: str | None = None, name: str | None = None, doc=None) -> None:
@@ -147,10 +169,15 @@ def assign_to_next_worker(doctype: str | None = None, name: str | None = None, d
 		if not task_name:
 			continue
 		worker = frappe.db.get_value("FWMS Task", task_name, "worker")
-		frappe.db.set_value("FWMS Task", task_name, {
-			"status": "Open",
-			"worker": None,
-			"assigned_at": None,
-		}, update_modified=True)
+		frappe.db.set_value(
+			"FWMS Task",
+			task_name,
+			{
+				"status": "Open",
+				"worker": None,
+				"assigned_at": None,
+			},
+			update_modified=True,
+		)
 		if worker:
 			frappe.db.set_value("FWMS Worker", worker, "current_task", None, update_modified=False)

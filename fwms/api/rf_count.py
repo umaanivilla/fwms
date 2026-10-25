@@ -22,7 +22,11 @@ def start(bin_name: str) -> dict:
 	# find the count program that covers this bin (via active task if any)
 	task_name = frappe.db.get_value(
 		"FWMS Task",
-		filters={"task_type": "Count", "to_bin": bin_name, "status": ("in", ("Open", "Assigned", "In Progress"))},
+		filters={
+			"task_type": "Count",
+			"to_bin": bin_name,
+			"status": ("in", ("Open", "Assigned", "In Progress")),
+		},
 		fieldname="name",
 	)
 	task = {"name": task_name} if task_name else None
@@ -75,15 +79,18 @@ def submit(bin_name: str, counted: list[dict], task: str | None = None) -> dict:
 	total_expected = sum(flt(r["qty"]) for r in expected)
 	total_counted = sum(flt(r["qty"]) for r in counted)
 	variance = total_counted - total_expected
-	accuracy = 100.0 * (
-		1 - (abs(variance) / total_expected if total_expected else 0)
-	)
+	accuracy = 100.0 * (1 - (abs(variance) / total_expected if total_expected else 0))
 
-	frappe.db.set_value("FWMS Bin", bin_name, {
-		"last_counted_on": frappe.utils.today(),
-		"last_count_variance": variance,
-		"last_count_accuracy": round(max(accuracy, 0), 2),
-	}, update_modified=True)
+	frappe.db.set_value(
+		"FWMS Bin",
+		bin_name,
+		{
+			"last_counted_on": frappe.utils.today(),
+			"last_count_variance": variance,
+			"last_count_accuracy": round(max(accuracy, 0), 2),
+		},
+		update_modified=True,
+	)
 
 	if task:
 		from fwms.tasks import complete_task
@@ -132,17 +139,16 @@ def apply_count_to_lpns_for_sr(sr_doc) -> None:
 	bin_name = getattr(sr_doc, "fwms_bin", None)
 	if not bin_name:
 		return
-	counted = [
-		{"item": r.item_code, "qty": flt(r.qty), "batch_no": r.batch_no}
-		for r in sr_doc.items or []
-	]
+	counted = [{"item": r.item_code, "qty": flt(r.qty), "batch_no": r.batch_no} for r in sr_doc.items or []]
 	_apply_count_to_lpns(bin_name, counted)
 
 
 def _apply_count_to_lpns(bin_name: str, counted: list[dict]) -> None:
 	"""Rewrite LPN contents in the bin to match the count (single-LPN bins)."""
 	lpns = frappe.get_all(
-		"FWMS LPN", filters={"bin": bin_name, "status": ("in", ("In Bin", "Receiving", "Picking"))}, pluck="name"
+		"FWMS LPN",
+		filters={"bin": bin_name, "status": ("in", ("In Bin", "Receiving", "Picking"))},
+		pluck="name",
 	)
 	if len(lpns) > 1:
 		# multi-LPN bins: keep FWMS truth as-is; SR carries the ledger correction
@@ -150,29 +156,35 @@ def _apply_count_to_lpns(bin_name: str, counted: list[dict]) -> None:
 	if not lpns:
 		if counted:
 			# stock found where FWMS has none — record onto a new tote in that bin
-			frappe.get_doc({
-				"doctype": "FWMS LPN",
-				"barcode": f"CNT-{bin_name}",
-				"lpn_type": "Tote",
-				"status": "In Bin",
-				"bin": bin_name,
-				"zone": frappe.db.get_value("FWMS Bin", bin_name, "zone"),
-				"items": [
-					{"item": r["item"], "qty": flt(r["qty"]), "batch_no": r.get("batch_no")}
-					for r in counted if flt(r["qty"]) > 0
-				],
-			}).insert(ignore_permissions=True)
+			frappe.get_doc(
+				{
+					"doctype": "FWMS LPN",
+					"barcode": f"CNT-{bin_name}",
+					"lpn_type": "Tote",
+					"status": "In Bin",
+					"bin": bin_name,
+					"zone": frappe.db.get_value("FWMS Bin", bin_name, "zone"),
+					"items": [
+						{"item": r["item"], "qty": flt(r["qty"]), "batch_no": r.get("batch_no")}
+						for r in counted
+						if flt(r["qty"]) > 0
+					],
+				}
+			).insert(ignore_permissions=True)
 		return
 
 	lpn = frappe.get_doc("FWMS LPN", lpns[0])
 	lpn.items = []
 	for row in counted:
 		if flt(row["qty"]) > 0:
-			lpn.append("items", {
-				"item": row["item"],
-				"qty": flt(row["qty"]),
-				"batch_no": row.get("batch_no"),
-			})
+			lpn.append(
+				"items",
+				{
+					"item": row["item"],
+					"qty": flt(row["qty"]),
+					"batch_no": row.get("batch_no"),
+				},
+			)
 	lpn.save(ignore_permissions=True)
 
 

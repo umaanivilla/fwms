@@ -30,7 +30,8 @@ def lpn_info(lpn: str) -> dict:
 		"source_name": lpn_doc.source_name,
 		"items": [
 			{"item_code": r.item, "qty": flt(r.qty), "batch_no": r.batch_no or None, "uom": r.uom}
-			for r in lpn_doc.items if flt(r.qty) > 0
+			for r in lpn_doc.items
+			if flt(r.qty) > 0
 		],
 	}
 
@@ -69,14 +70,17 @@ def scrap(lpn: str, lines: list[dict], reason: str) -> dict:
 		if qty <= 0:
 			continue
 		match = next(
-			(r for r in lpn_doc.items
-				if r.item == line["item_code"] and (r.batch_no or None) == (line.get("batch_no") or None)),
+			(
+				r
+				for r in lpn_doc.items
+				if r.item == line["item_code"] and (r.batch_no or None) == (line.get("batch_no") or None)
+			),
 			None,
 		)
 		if not match:
 			frappe.throw(f"{line['item_code']} is not in LPN {lpn}")
 		if qty > flt(match.qty):
-			frappe.throw(f"Only {flt(match.qty):g} × {line['item_code']} in {lpn}, tried to scrap {qty:g}")
+			frappe.throw(f"Only {flt(match.qty):g} × {line['item_code']} in {lpn}, tried to scrap {qty:g}")  # noqa: RUF001
 		row = se.append("items", {})
 		row.item_code = line["item_code"]
 		row.qty = qty

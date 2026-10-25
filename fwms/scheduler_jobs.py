@@ -31,7 +31,11 @@ def generate_count_tasks() -> int:
 			# skip if an open/assigned count already exists for this bin
 			exists = frappe.db.exists(
 				"FWMS Task",
-				{"task_type": "Count", "to_bin": bin_row.name, "status": ("in", ("Open", "Assigned", "In Progress"))},
+				{
+					"task_type": "Count",
+					"to_bin": bin_row.name,
+					"status": ("in", ("Open", "Assigned", "In Progress")),
+				},
 			)
 			if exists:
 				continue
@@ -40,15 +44,18 @@ def generate_count_tasks() -> int:
 				to_bin=bin_row.name,
 				priority="3-Low",
 				emit_event=False,
-				references=[{
-					"reference_doctype": "FWMS Count Program",
-					"reference_name": program.name,
-					"note": program.count_method or "Blind",
-				}],
+				references=[
+					{
+						"reference_doctype": "FWMS Count Program",
+						"reference_name": program.name,
+						"note": program.count_method or "Blind",
+					}
+				],
 			)
 			created += 1
 		frappe.db.set_value(
-			"FWMS Count Program", program.name,
+			"FWMS Count Program",
+			program.name,
 			{"last_generated_on": today(), "tasks_generated": (program_tasks(program.name))},
 		)
 	if created:
@@ -85,10 +92,7 @@ def check_replenishment() -> int:
 		fields=["name", "primary_item", "min_qty", "max_qty"],
 	)
 	for bin_row in bins:
-		stock = sum(
-			flt(r.qty) for r in get_bin_stock(bin_row.name)
-			if r.item == bin_row.primary_item
-		)
+		stock = sum(flt(r.qty) for r in get_bin_stock(bin_row.name) if r.item == bin_row.primary_item)
 		if stock >= flt(bin_row.min_qty):
 			continue
 		exists = frappe.db.exists(
@@ -129,10 +133,10 @@ def snapshot_kpis() -> str:
 	"""Every 5 minutes: roll floor KPIs into FWMS KPI Snapshot + broadcast."""
 	now = now_datetime()
 
-	orders_shipped_today = frappe.db.count(
-		"Delivery Note", {"docstatus": 1, "posting_date": today()}
+	orders_shipped_today = frappe.db.count("Delivery Note", {"docstatus": 1, "posting_date": today()})
+	open_orders = frappe.db.count(
+		"Sales Order", {"docstatus": 1, "status": ("!=", "Closed"), "per_delivered": ("<", 100)}
 	)
-	open_orders = frappe.db.count("Sales Order", {"docstatus": 1, "status": ("!=", "Closed"), "per_delivered": ("<", 100)})
 	rf_scans = frappe.db.count(
 		"FWMS Event Log",
 		{"is_scan": 1, "creation": (">=", now - timedelta(hours=1))},
@@ -156,19 +160,21 @@ def snapshot_kpis() -> str:
 
 	cycle_minutes = _avg_cycle_time_minutes()
 
-	snapshot = frappe.get_doc({
-		"doctype": "FWMS KPI Snapshot",
-		"snapshot_time": now,
-		"orders_shipped_today": orders_shipped_today,
-		"open_orders": open_orders,
-		"avg_cycle_time_minutes": cycle_minutes,
-		"lines_picked_per_hour": lines_last_hour,
-		"rf_scans_last_hour": rf_scans,
-		"pack_queue": pack_queue,
-		"dock_doors_in_use": dock_doors,
-		"count_accuracy_pct": count_accuracy,
-		"counts_completed_shift": counts_shift,
-	}).insert(ignore_permissions=True)
+	snapshot = frappe.get_doc(
+		{
+			"doctype": "FWMS KPI Snapshot",
+			"snapshot_time": now,
+			"orders_shipped_today": orders_shipped_today,
+			"open_orders": open_orders,
+			"avg_cycle_time_minutes": cycle_minutes,
+			"lines_picked_per_hour": lines_last_hour,
+			"rf_scans_last_hour": rf_scans,
+			"pack_queue": pack_queue,
+			"dock_doors_in_use": dock_doors,
+			"count_accuracy_pct": count_accuracy,
+			"counts_completed_shift": counts_shift,
+		}
+	).insert(ignore_permissions=True)
 
 	frappe.publish_realtime(event="fwms_kpi", message=snapshot.as_dict())
 	return snapshot.name

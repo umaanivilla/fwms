@@ -73,16 +73,32 @@ def resolve_scan(barcode: str) -> dict:
 
 
 def get_next_lpn_barcode(lpn_type: str) -> str:
-	"""Sequential scannable barcode for a new container, e.g. LPN-000042."""
+	"""Sequential scannable barcode for a new container, e.g. LPN-000042.
+
+	A MariaDB advisory lock serializes concurrent draws; without it two
+	simultaneous receipts could compute the same barcode. The window between
+	computing and inserting is narrowed, not eliminated — a true collision
+	surfaces as a request error rather than silent corruption.
+	"""
 	prefix = {"Tote": "LPN", "Carton": "CART", "Pallet": "PLT", "Cart": "CART"}.get(lpn_type, "LPN")
-	series = frappe.db.get_all("FWMS LPN", filters={"barcode": ("like", f"{prefix}-%")}, pluck="barcode")
-	max_n = 0
-	for code in series:
-		try:
-			max_n = max(max_n, int(code.split("-")[-1]))
-		except ValueError:
-			continue
-	return f"{prefix}-{max_n + 1:06d}"
+	lock = f"fwms_lpn_seq_{prefix}"
+	got = frappe.db.sql("SELECT GET_LOCK(%s, 5)", (lock,))[0][0]
+	try:
+		series = frappe.db.get_all("FWMS LPN", filters={"barcode": ("like", f"{prefix}-%")}, pluck="barcode")
+		max_n = 0
+		for code in series:
+			try:
+				max_n = max(max_n, int(code.split("-")[-1]))
+			except ValueError:
+				continue
+		candidate = f"{prefix}-{max_n + 1:06d}"
+		while got and frappe.db.exists("FWMS LPN", candidate):
+			max_n += 1
+			candidate = f"{prefix}-{max_n + 1:06d}"
+		return candidate
+	finally:
+		if got:
+			frappe.db.sql("SELECT RELEASE_LOCK(%s)", (lock,))
 
 
 def fefo_sort_batches(batches: list[dict]) -> list[dict]:
@@ -90,9 +106,14 @@ def fefo_sort_batches(batches: list[dict]) -> list[dict]:
 
 	Items without expiry fall back to FIFO ordering inside their group.
 	"""
+
 	def key(row):
-		expiry = frappe.db.get_value("Batch", row.get("batch_no"), "expiry_date") if row.get("batch_no") else None
-		created = frappe.db.get_value("Batch", row.get("batch_no"), "creation") if row.get("batch_no") else "9999"
+		expiry = (
+			frappe.db.get_value("Batch", row.get("batch_no"), "expiry_date") if row.get("batch_no") else None
+		)
+		created = (
+			frappe.db.get_value("Batch", row.get("batch_no"), "creation") if row.get("batch_no") else "9999"
+		)
 		strategy = frappe.db.get_single_value("FWMS Settings", "pick_strategy") or "FEFO"
 		if strategy == "FEFO" and expiry:
 			return (0, str(expiry), str(created))

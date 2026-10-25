@@ -37,7 +37,8 @@ class TestQualityScrap(FrappeTestCase):
 		"""Receive a fully QC-failed line -> (qc LPN, open Quality task)."""
 		po = self._open_po(item, qty)
 		res = rf_receiving.commit_receipt(
-			po=po, lpn_barcode=None,
+			po=po,
+			lpn_barcode=None,
 			lines=[{"item_code": item, "qty": qty, "qc": "Fail"}],
 		)
 		qc_lpn = f"QC-{res['purchase_receipt']}"
@@ -62,7 +63,8 @@ class TestQualityScrap(FrappeTestCase):
 		self.assertEqual(detail["source_doctype"], "Purchase Receipt")
 
 		out = rf_quality.inspect(
-			lpn=qc_lpn, task=task,
+			lpn=qc_lpn,
+			task=task,
 			results=[{"item_code": "VALVE-08", "qty": 5, "verdict": "Pass"}],
 		)
 
@@ -76,7 +78,9 @@ class TestQualityScrap(FrappeTestCase):
 		sle_wh = frappe.get_all(
 			"Stock Ledger Entry",
 			filters={"voucher_type": "Stock Entry", "item_code": "VALVE-08"},
-			pluck="warehouse", order_by="creation desc", limit=5,
+			pluck="warehouse",
+			order_by="creation desc",
+			limit=5,
 		)
 		self.assertIn(get_warehouse_for_type("QC Hold"), sle_wh)
 
@@ -91,7 +95,8 @@ class TestQualityScrap(FrappeTestCase):
 		qc_lpn, task = self._receive_qc_fail(qty=6)
 
 		out = rf_quality.inspect(
-			lpn=qc_lpn, task=task,
+			lpn=qc_lpn,
+			task=task,
 			results=[
 				{"item_code": "VALVE-08", "qty": 4, "verdict": "Pass"},
 				{"item_code": "VALVE-08", "qty": 2, "verdict": "Fail"},
@@ -129,7 +134,8 @@ class TestQualityScrap(FrappeTestCase):
 		batch = frappe.db.get_value("FWMS LPN Item", {"parent": qc_lpn}, "batch_no")
 
 		out = rf_scrap.scrap(
-			lpn=qc_lpn, reason="Obsolete",
+			lpn=qc_lpn,
+			reason="Obsolete",
 			lines=[{"item_code": "VALVE-08", "qty": 2, "batch_no": batch}],
 		)
 		se = frappe.get_doc("Stock Entry", out["stock_entry"])
@@ -157,7 +163,8 @@ class TestQualityScrap(FrappeTestCase):
 		# scrap the last unit -> LPN closes out
 		frappe.set_user("w001@fwms.local")
 		out2 = rf_scrap.scrap(
-			lpn=qc_lpn, reason="Quality Fail",
+			lpn=qc_lpn,
+			reason="Quality Fail",
 			lines=[{"item_code": "VALVE-08", "qty": 1, "batch_no": batch}],
 		)
 		frappe.set_user(ic_user)
@@ -166,9 +173,7 @@ class TestQualityScrap(FrappeTestCase):
 		lpn = frappe.get_doc("FWMS LPN", qc_lpn)
 		self.assertEqual(lpn.status, "Closed")
 		self.assertFalse(lpn.items)
-		self.assertTrue(frappe.db.exists(
-			"FWMS Event Log", {"subtype": "scrap_posted", "lpn": qc_lpn}
-		))
+		self.assertTrue(frappe.db.exists("FWMS Event Log", {"subtype": "scrap_posted", "lpn": qc_lpn}))
 
 	def test_scrap_reason_and_qty_validation(self):
 		qc_lpn, _task = self._receive_qc_fail(qty=2)
@@ -180,7 +185,9 @@ class TestQualityScrap(FrappeTestCase):
 	def test_returns_scrap_grade_maps_to_scrap_warehouse(self):
 		# regression for the grade gap: Scrap used to map to no zone at all
 		self.assertEqual(rf_returns.GRADE_WAREHOUSE_ZONE["Scrap"], "Scrap")
-		self.assertEqual(get_warehouse_for_type("Scrap"), frappe.db.get_value("FWMS Zone", "Scrap", "warehouse"))
+		self.assertEqual(
+			get_warehouse_for_type("Scrap"), frappe.db.get_value("FWMS Zone", "Scrap", "warehouse")
+		)
 
 		dn = frappe.get_all("Delivery Note", filters={"docstatus": 1}, pluck="name", limit=1)
 		if not dn:

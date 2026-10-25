@@ -22,21 +22,23 @@ def emit(
 	payload: dict | None = None,
 ) -> str:
 	"""Insert an FWMS Event Log row and broadcast it over websocket."""
-	doc = frappe.get_doc({
-		"doctype": "FWMS Event Log",
-		"category": category,
-		"subtype": subtype,
-		"severity": severity,
-		"is_scan": 1 if is_scan else 0,
-		"message": message,
-		"worker": worker,
-		"zone": zone,
-		"bin": bin,
-		"lpn": lpn,
-		"reference_doctype": reference_doctype,
-		"reference_name": reference_name,
-		"payload": frappe.as_json(payload) if payload else None,
-	})
+	doc = frappe.get_doc(
+		{
+			"doctype": "FWMS Event Log",
+			"category": category,
+			"subtype": subtype,
+			"severity": severity,
+			"is_scan": 1 if is_scan else 0,
+			"message": message,
+			"worker": worker,
+			"zone": zone,
+			"bin": bin,
+			"lpn": lpn,
+			"reference_doctype": reference_doctype,
+			"reference_name": reference_name,
+			"payload": frappe.as_json(payload) if payload else None,
+		}
+	)
 	doc.insert(ignore_permissions=True)
 
 	data = {
@@ -62,6 +64,7 @@ def emit(
 # ---------------------------------------------------------------------------
 # doc_events handlers (wired in hooks.py)
 # ---------------------------------------------------------------------------
+
 
 def on_sales_order_submit(doc, method=None):
 	from fwms.wave import on_sales_order_submit as handle
@@ -116,7 +119,11 @@ def apply_scrap_to_lpn(doc) -> bool:
 		if row.t_warehouse != scrap_wh or flt(row.qty) <= 0:
 			continue
 		match = next(
-			(r for r in lpn.items if r.item == row.item_code and (r.batch_no or None) == (row.batch_no or None)),
+			(
+				r
+				for r in lpn.items
+				if r.item == row.item_code and (r.batch_no or None) == (row.batch_no or None)
+			),
 			None,
 		)
 		if match:
@@ -131,8 +138,7 @@ def apply_scrap_to_lpn(doc) -> bool:
 
 	emit(
 		"Inventory Control",
-		f"Scrap posted: {doc.name} — LPN {lpn_name} "
-		f"{'closed out' if lpn.status == 'Closed' else 'reduced'}",
+		f"Scrap posted: {doc.name} — LPN {lpn_name} {'closed out' if lpn.status == 'Closed' else 'reduced'}",
 		subtype="scrap_posted",
 		severity="Warning",
 		lpn=lpn_name,

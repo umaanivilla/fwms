@@ -34,11 +34,13 @@ def on_sales_order_submit(doc, method=None):
 		)
 		return
 
-	wave = frappe.get_doc({
-		"doctype": "FWMS Wave",
-		"mode": "Continuous",
-		"orders": [{"sales_order": doc.name}],
-	}).insert(ignore_permissions=True)
+	wave = frappe.get_doc(
+		{
+			"doctype": "FWMS Wave",
+			"mode": "Continuous",
+			"orders": [{"sales_order": doc.name}],
+		}
+	).insert(ignore_permissions=True)
 	release_wave(wave.name)
 
 
@@ -103,11 +105,13 @@ def release_wave(wave_name: str) -> str:
 						lpn=alloc["lpn"],
 						wave=wave.name,
 						emit_event=False,
-						references=[{
-							"reference_doctype": "Pick List",
-							"reference_name": None,  # patched after PL insert
-							"note": f"so:{so.name}",
-						}],
+						references=[
+							{
+								"reference_doctype": "Pick List",
+								"reference_name": None,  # patched after PL insert
+								"note": f"so:{so.name}",
+							}
+						],
 					)
 					tasks_created += 1
 
@@ -123,7 +127,9 @@ def release_wave(wave_name: str) -> str:
 		order_by="creation asc",
 		pluck="name",
 	)
-	for task_name, row in zip(_tasks, [r for r in pick_list.locations if r.warehouse == pick_face_wh]):
+	for task_name, row in zip(
+		_tasks, [r for r in pick_list.locations if r.warehouse == pick_face_wh], strict=False
+	):
 		for ref in frappe.get_doc("FWMS Task", task_name).references or []:
 			if ref.reference_doctype == "Pick List":
 				frappe.db.set_value("FWMS Task Reference", ref.name, "reference_name", row.name)
@@ -206,13 +212,15 @@ def _allocate(item: str, qty: float) -> list[dict]:
 			take = min(flt(row.qty), qty)
 			if take <= 0:
 				continue
-			allocations.append({
-				"qty": take,
-				"batch_no": row.batch_no,
-				"bin": bin_by_lpn.get(row.parent),
-				"lpn": row.parent,
-				"zone_type": zone_type,
-			})
+			allocations.append(
+				{
+					"qty": take,
+					"batch_no": row.batch_no,
+					"bin": bin_by_lpn.get(row.parent),
+					"lpn": row.parent,
+					"zone_type": zone_type,
+				}
+			)
 			qty -= take
 
 	return allocations
@@ -234,14 +242,11 @@ def on_delivery_note_shipped(doc, method=None):
 	"""Mark wave orders shipped; close the wave once every order has shipped."""
 	wave_names = {doc.fwms_wave} if getattr(doc, "fwms_wave", None) else set()
 	wave_names.update(
-		r.parent for r in frappe.get_all(
-			"FWMS Wave Order", filters={"delivery_note": doc.name}, fields=["parent"]
-		)
+		r.parent
+		for r in frappe.get_all("FWMS Wave Order", filters={"delivery_note": doc.name}, fields=["parent"])
 	)
 	# link the DN onto its wave order row when not yet recorded
-	so = frappe.db.get_value(
-		"Delivery Note Item", {"parent": doc.name}, "against_sales_order"
-	)
+	so = frappe.db.get_value("Delivery Note Item", {"parent": doc.name}, "against_sales_order")
 	for wave_name in filter(None, wave_names):
 		orders = frappe.get_all(
 			"FWMS Wave Order",
@@ -255,8 +260,10 @@ def on_delivery_note_shipped(doc, method=None):
 			row_name = orders[0].name  # single-order wave: unambiguous
 		if row_name:
 			frappe.db.set_value(
-				"FWMS Wave Order", row_name,
-				{"status": "Shipped", "delivery_note": doc.name}, update_modified=False,
+				"FWMS Wave Order",
+				row_name,
+				{"status": "Shipped", "delivery_note": doc.name},
+				update_modified=False,
 			)
 			for o in orders:
 				if o.name == row_name:
@@ -272,9 +279,8 @@ def on_delivery_note_shipped(doc, method=None):
 		if not orders:
 			continue
 		all_shipped = all(
-			o.status == "Shipped" or (
-				o.delivery_note and frappe.db.get_value("Delivery Note", o.delivery_note, "docstatus") == 1
-			)
+			o.status == "Shipped"
+			or (o.delivery_note and frappe.db.get_value("Delivery Note", o.delivery_note, "docstatus") == 1)
 			for o in orders
 		)
 		if all_shipped:

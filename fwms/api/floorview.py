@@ -42,7 +42,11 @@ def _role_for(worker_doc) -> tuple[str, str]:
 		return ("inventory", "#7C3AED")
 	if "return" in skills:
 		return ("returns", "#92400E")
-	zone_type = frappe.db.get_value("FWMS Zone", worker_doc.default_zone, "zone_type") if worker_doc.default_zone else None
+	zone_type = (
+		frappe.db.get_value("FWMS Zone", worker_doc.default_zone, "zone_type")
+		if worker_doc.default_zone
+		else None
+	)
 	if zone_type in ROLE_BY_ZONE:
 		return ROLE_BY_ZONE[zone_type]
 	if "pick" in skills:
@@ -104,15 +108,18 @@ def _slot_map() -> dict[str, dict]:
 		used.add((x, y))
 		qty = qty_by_bin.get(b.name, 0)
 		zone_type = frappe.db.get_value("FWMS Zone", b.zone, "zone_type") if b.zone else ""
-		slots.append({
-			"bin": b.name,
-			"x": x, "y": y,
-			"qty": qty,
-			"abc": b.abc_class or "C",
-			"pick_face": bool(b.is_pick_face),
-			"zone": zone_type,
-			"primary_item": b.primary_item,
-		})
+		slots.append(
+			{
+				"bin": b.name,
+				"x": x,
+				"y": y,
+				"qty": qty,
+				"abc": b.abc_class or "C",
+				"pick_face": bool(b.is_pick_face),
+				"zone": zone_type,
+				"primary_item": b.primary_item,
+			}
+		)
 	return slots
 
 
@@ -151,8 +158,17 @@ def dashboard() -> dict:
 	workers = frappe.get_all(
 		"FWMS Worker",
 		filters={"active": 1},
-		fields=["name", "worker_code", "person_name", "default_zone", "current_task",
-				"shift", "tasks_completed", "scans_today", "skills"],
+		fields=[
+			"name",
+			"worker_code",
+			"person_name",
+			"default_zone",
+			"current_task",
+			"shift",
+			"tasks_completed",
+			"scans_today",
+			"skills",
+		],
 	)
 	roles = {}
 	zones = frappe.get_all("FWMS Zone", fields=["name", "zone_type"])
@@ -164,7 +180,19 @@ def dashboard() -> dict:
 	tasks = frappe.get_all(
 		"FWMS Task",
 		filters={"status": ("in", ("Open", "Assigned", "In Progress"))},
-		fields=["name", "task_type", "status", "worker", "item", "qty", "lpn", "from_bin", "to_bin", "wave", "priority"],
+		fields=[
+			"name",
+			"task_type",
+			"status",
+			"worker",
+			"item",
+			"qty",
+			"lpn",
+			"from_bin",
+			"to_bin",
+			"wave",
+			"priority",
+		],
 		order_by="priority asc, creation asc",
 		limit=100,
 	)
@@ -179,8 +207,21 @@ def dashboard() -> dict:
 
 	events = frappe.get_all(
 		"FWMS Event Log",
-		fields=["name", "category", "subtype", "severity", "is_scan", "message", "worker", "zone", "bin", "lpn",
-				"reference_doctype", "reference_name", "creation"],
+		fields=[
+			"name",
+			"category",
+			"subtype",
+			"severity",
+			"is_scan",
+			"message",
+			"worker",
+			"zone",
+			"bin",
+			"lpn",
+			"reference_doctype",
+			"reference_name",
+			"creation",
+		],
 		order_by="creation desc",
 		limit=150,
 	)
@@ -198,15 +239,14 @@ def dashboard() -> dict:
 		fields=["name", "door_code", "zone", "direction", "status", "carrier", "trailer"],
 		order_by="door_code",
 	)
-	inbound_lpns = frappe.db.count("FWMS LPN", {"zone": frappe.db.get_value("FWMS Zone", {"zone_type": "Receiving Docks"}, "name")})
+	inbound_lpns = frappe.db.count(
+		"FWMS LPN", {"zone": frappe.db.get_value("FWMS Zone", {"zone_type": "Receiving Docks"}, "name")}
+	)
 
 	return {
 		"slots": _slot_map(),
 		"staging": _staging_state(),
-		"workers": [
-			{**w, "role": roles[w.name]["role"], "color": roles[w.name]["color"]}
-			for w in workers
-		],
+		"workers": [{**w, "role": roles[w.name]["role"], "color": roles[w.name]["color"]} for w in workers],
 		"tasks": tasks,
 		"task_by_worker": {t.worker: t for t in tasks if t.worker},
 		"docks": docks,
@@ -263,7 +303,9 @@ def simulate_orders(count: int = 20) -> dict:
 	import random
 
 	random.seed()
-	items = [i for i in frappe.get_all("Item", filters={"is_stock_item": 1, "disabled": 0}, pluck="name") if i]
+	items = [
+		i for i in frappe.get_all("Item", filters={"is_stock_item": 1, "disabled": 0}, pluck="name") if i
+	]
 	customers = frappe.get_all("Customer", pluck="name", limit=10)
 	pick_wh = frappe.db.get_value("FWMS Zone", {"zone_type": "Pick Faces"}, "warehouse")
 	if not (items and customers and pick_wh):
@@ -315,15 +357,18 @@ def simulate_orders(count: int = 20) -> dict:
 def simulate_truck() -> dict:
 	"""Demo: mark an inbound door Busy + emit check-in event."""
 	frappe.only_for(("FWMS Supervisor", "System Manager"))
-	door = frappe.get_all(
-		"FWMS Dock Door", filters={"direction": "Inbound", "status": "Idle"}, limit=1
-	)
+	door = frappe.get_all("FWMS Dock Door", filters={"direction": "Inbound", "status": "Idle"}, limit=1)
 	if not door:
 		frappe.throw("No idle inbound door")
-	frappe.db.set_value("FWMS Dock Door", door[0].name, {
-		"status": "Busy", "carrier": "FWMS Demo Lines",
-		"trailer": f"TR-{frappe.generate_hash(length=4)}",
-	})
+	frappe.db.set_value(
+		"FWMS Dock Door",
+		door[0].name,
+		{
+			"status": "Busy",
+			"carrier": "FWMS Demo Lines",
+			"trailer": f"TR-{frappe.generate_hash(length=4)}",
+		},
+	)
 	emit(
 		"Receiving & QC",
 		f"Trailer {frappe.db.get_value('FWMS Dock Door', door[0].name, 'trailer')} docked at {door[0].name} — ASN opened, pallets expected",

@@ -13,26 +13,92 @@ FWMS_ROLES = ["FWMS Operator", "FWMS Supervisor", "FWMS Inventory Control"]
 CUSTOM_FIELDS = {
 	"Purchase Receipt": [
 		{"fieldname": "fwms_section", "fieldtype": "Section Break", "label": "FWMS", "collapsible": 1},
-		{"fieldname": "fwms_po", "label": "FWMS Purchase Order", "fieldtype": "Link", "options": "Purchase Order", "insert_after": "fwms_section"},
-		{"fieldname": "fwms_lpn", "label": "FWMS LPN", "fieldtype": "Link", "options": "FWMS LPN", "insert_after": "fwms_po"},
-		{"fieldname": "fwms_worker", "label": "FWMS Worker", "fieldtype": "Link", "options": "FWMS Worker", "insert_after": "fwms_lpn"},
+		{
+			"fieldname": "fwms_po",
+			"label": "FWMS Purchase Order",
+			"fieldtype": "Link",
+			"options": "Purchase Order",
+			"insert_after": "fwms_section",
+		},
+		{
+			"fieldname": "fwms_lpn",
+			"label": "FWMS LPN",
+			"fieldtype": "Link",
+			"options": "FWMS LPN",
+			"insert_after": "fwms_po",
+		},
+		{
+			"fieldname": "fwms_worker",
+			"label": "FWMS Worker",
+			"fieldtype": "Link",
+			"options": "FWMS Worker",
+			"insert_after": "fwms_lpn",
+		},
 	],
 	"Stock Entry": [
 		{"fieldname": "fwms_section", "fieldtype": "Section Break", "label": "FWMS", "collapsible": 1},
-		{"fieldname": "fwms_task", "label": "FWMS Task", "fieldtype": "Link", "options": "FWMS Task", "insert_after": "fwms_section"},
-		{"fieldname": "fwms_worker", "label": "FWMS Worker", "fieldtype": "Link", "options": "FWMS Worker", "insert_after": "fwms_task"},
-		{"fieldname": "fwms_lpn", "label": "FWMS LPN", "fieldtype": "Link", "options": "FWMS LPN", "insert_after": "fwms_worker"},
+		{
+			"fieldname": "fwms_task",
+			"label": "FWMS Task",
+			"fieldtype": "Link",
+			"options": "FWMS Task",
+			"insert_after": "fwms_section",
+		},
+		{
+			"fieldname": "fwms_worker",
+			"label": "FWMS Worker",
+			"fieldtype": "Link",
+			"options": "FWMS Worker",
+			"insert_after": "fwms_task",
+		},
+		{
+			"fieldname": "fwms_lpn",
+			"label": "FWMS LPN",
+			"fieldtype": "Link",
+			"options": "FWMS LPN",
+			"insert_after": "fwms_worker",
+		},
 	],
 	"Delivery Note": [
 		{"fieldname": "fwms_section", "fieldtype": "Section Break", "label": "FWMS", "collapsible": 1},
-		{"fieldname": "fwms_wave", "label": "FWMS Wave", "fieldtype": "Link", "options": "FWMS Wave", "insert_after": "fwms_section"},
-		{"fieldname": "fwms_dock_door", "label": "FWMS Dock Door", "fieldtype": "Link", "options": "FWMS Dock Door", "insert_after": "fwms_wave"},
-		{"fieldname": "fwms_worker", "label": "FWMS Worker", "fieldtype": "Link", "options": "FWMS Worker", "insert_after": "fwms_dock_door"},
+		{
+			"fieldname": "fwms_wave",
+			"label": "FWMS Wave",
+			"fieldtype": "Link",
+			"options": "FWMS Wave",
+			"insert_after": "fwms_section",
+		},
+		{
+			"fieldname": "fwms_dock_door",
+			"label": "FWMS Dock Door",
+			"fieldtype": "Link",
+			"options": "FWMS Dock Door",
+			"insert_after": "fwms_wave",
+		},
+		{
+			"fieldname": "fwms_worker",
+			"label": "FWMS Worker",
+			"fieldtype": "Link",
+			"options": "FWMS Worker",
+			"insert_after": "fwms_dock_door",
+		},
 	],
 	"Stock Reconciliation": [
 		{"fieldname": "fwms_section", "fieldtype": "Section Break", "label": "FWMS", "collapsible": 1},
-		{"fieldname": "fwms_bin", "label": "FWMS Bin", "fieldtype": "Link", "options": "FWMS Bin", "insert_after": "fwms_section"},
-		{"fieldname": "fwms_task", "label": "FWMS Task", "fieldtype": "Link", "options": "FWMS Task", "insert_after": "fwms_bin"},
+		{
+			"fieldname": "fwms_bin",
+			"label": "FWMS Bin",
+			"fieldtype": "Link",
+			"options": "FWMS Bin",
+			"insert_after": "fwms_section",
+		},
+		{
+			"fieldname": "fwms_task",
+			"label": "FWMS Task",
+			"fieldtype": "Link",
+			"options": "FWMS Task",
+			"insert_after": "fwms_bin",
+		},
 	],
 }
 
@@ -114,12 +180,14 @@ def ensure_custom_fields():
 def ensure_roles():
 	for role in FWMS_ROLES:
 		if not frappe.db.exists("Role", role):
-			frappe.get_doc({
-				"doctype": "Role",
-				"role_name": role,
-				"desk_access": 1,
-				"disabled": 0,
-			}).insert(ignore_permissions=True)
+			frappe.get_doc(
+				{
+					"doctype": "Role",
+					"role_name": role,
+					"desk_access": 1,
+					"disabled": 0,
+				}
+			).insert(ignore_permissions=True)
 
 
 def ensure_erp_permissions():
@@ -164,18 +232,18 @@ def _ensure_custom_perm(doctype: str, role: str, perms: dict, docstatus: int) ->
 def seed_tariffs():
 	for tariff, description in SEED_TARIFFS:
 		if not frappe.db.exists("Customs Tariff Number", tariff):
-			frappe.get_doc({
-				"doctype": "Customs Tariff Number",
-				"tariff_number": tariff,
-				"description": description,
-			}).insert(ignore_permissions=True)
+			frappe.get_doc(
+				{
+					"doctype": "Customs Tariff Number",
+					"tariff_number": tariff,
+					"description": description,
+				}
+			).insert(ignore_permissions=True)
 
 
 def default_settings():
 	# WMS semantics: rejected QC still posts the receipt (into QC Hold)
-	frappe.db.set_single_value(
-		"Stock Settings", "action_if_quality_inspection_is_rejected", "Warn"
-	)
+	frappe.db.set_single_value("Stock Settings", "action_if_quality_inspection_is_rejected", "Warn")
 	# RF Quality inspects QC-hold stock after the fact, against the source
 	# PR/DN — lift ERPNext's "inspection must be pre-required on the item" gate
 	frappe.db.set_single_value(
@@ -227,22 +295,26 @@ def ensure_scrap_zone():
 	scrap_wh = f"Scrap - {abbr}"
 	if not frappe.db.exists("Warehouse", scrap_wh):
 		root = frappe.db.get_value("Warehouse", {"company": company, "is_group": 1}, "name")
-		frappe.get_doc({
-			"doctype": "Warehouse",
-			"warehouse_name": "Scrap",
-			"company": company,
-			"parent_warehouse": root,
-			"is_group": 0,
-		}).insert(ignore_permissions=True)
+		frappe.get_doc(
+			{
+				"doctype": "Warehouse",
+				"warehouse_name": "Scrap",
+				"company": company,
+				"parent_warehouse": root,
+				"is_group": 0,
+			}
+		).insert(ignore_permissions=True)
 	if not frappe.db.exists("FWMS Zone", "Scrap"):
-		frappe.get_doc({
-			"doctype": "FWMS Zone",
-			"zone_name": "Scrap",
-			"zone_type": "Scrap",
-			"warehouse": scrap_wh,
-			"is_physical_only": 0,
-			"barcode_prefix": "SCRAP",
-		}).insert(ignore_permissions=True)
+		frappe.get_doc(
+			{
+				"doctype": "FWMS Zone",
+				"zone_name": "Scrap",
+				"zone_type": "Scrap",
+				"warehouse": scrap_wh,
+				"is_physical_only": 0,
+				"barcode_prefix": "SCRAP",
+			}
+		).insert(ignore_permissions=True)
 
 
 def setup_company(company_name: str = "FWMS Warehouse Co", abbr: str = "FW", currency: str = "USD"):
@@ -250,31 +322,37 @@ def setup_company(company_name: str = "FWMS Warehouse Co", abbr: str = "FW", cur
 	# ERPNext's company bootstrap references these warehouse types
 	for wh_type in ("Transit", "Scrap"):
 		if not frappe.db.exists("Warehouse Type", wh_type):
-			frappe.get_doc({
-				"doctype": "Warehouse Type",
-				"__newname": wh_type,
-				"warehouse_type": wh_type,
-			}).insert(ignore_permissions=True)
+			frappe.get_doc(
+				{
+					"doctype": "Warehouse Type",
+					"__newname": wh_type,
+					"warehouse_type": wh_type,
+				}
+			).insert(ignore_permissions=True)
 
 	if not frappe.db.exists("Company", company_name):
-		frappe.get_doc({
-			"doctype": "Company",
-			"company_name": company_name,
-			"abbr": abbr,
-			"currency": currency,
-			"default_currency": currency,
-			"country": "United States",
-			"chart_of_accounts": "Standard with Numbers",
-		}).insert(ignore_permissions=True)
+		frappe.get_doc(
+			{
+				"doctype": "Company",
+				"company_name": company_name,
+				"abbr": abbr,
+				"currency": currency,
+				"default_currency": currency,
+				"country": "United States",
+				"chart_of_accounts": "Standard with Numbers",
+			}
+		).insert(ignore_permissions=True)
 
 	fiscal_year = f"{frappe.utils.getdate().year}"
 	if not frappe.db.exists("Fiscal Year", fiscal_year):
-		frappe.get_doc({
-			"doctype": "Fiscal Year",
-			"year": fiscal_year,
-			"year_start_date": f"{fiscal_year}-01-01",
-			"year_end_date": f"{fiscal_year}-12-31",
-		}).insert(ignore_permissions=True)
+		frappe.get_doc(
+			{
+				"doctype": "Fiscal Year",
+				"year": fiscal_year,
+				"year_start_date": f"{fiscal_year}-01-01",
+				"year_end_date": f"{fiscal_year}-12-31",
+			}
+		).insert(ignore_permissions=True)
 
 	settings = frappe.get_doc("FWMS Settings")
 	settings.company = company_name
@@ -290,50 +368,58 @@ def setup_company(company_name: str = "FWMS Warehouse Co", abbr: str = "FW", cur
 def _setup_zones(company_name: str, abbr: str):
 	root = f"{company_name} - {abbr}"
 	if not frappe.db.exists("Warehouse", root):
-		frappe.get_doc({
-			"doctype": "Warehouse",
-			"warehouse_name": company_name,
-			"company": company_name,
-			"is_group": 1,
-		}).insert(ignore_permissions=True)
+		frappe.get_doc(
+			{
+				"doctype": "Warehouse",
+				"warehouse_name": company_name,
+				"company": company_name,
+				"is_group": 1,
+			}
+		).insert(ignore_permissions=True)
 
 	for zone_name, zone_type, has_warehouse, mx, my, mw, mh, color in ZONE_DEFS:
 		warehouse = None
 		if has_warehouse:
 			warehouse = f"{zone_name} - {abbr}"
 			if not frappe.db.exists("Warehouse", warehouse):
-				frappe.get_doc({
-					"doctype": "Warehouse",
-					"warehouse_name": zone_name,
-					"company": company_name,
-					"parent_warehouse": root,
-					"is_group": 0,
-				}).insert(ignore_permissions=True)
+				frappe.get_doc(
+					{
+						"doctype": "Warehouse",
+						"warehouse_name": zone_name,
+						"company": company_name,
+						"parent_warehouse": root,
+						"is_group": 0,
+					}
+				).insert(ignore_permissions=True)
 		if not frappe.db.exists("FWMS Zone", zone_name):
-			frappe.get_doc({
-				"doctype": "FWMS Zone",
-				"zone_name": zone_name,
-				"zone_type": zone_type,
-				"warehouse": warehouse,
-				"is_physical_only": 0 if has_warehouse else 1,
-				"barcode_prefix": zone_name.split()[0].upper()[:4],
-				"map_x": mx,
-				"map_y": my,
-				"map_w": mw,
-				"map_h": mh,
-				"color": color,
-			}).insert(ignore_permissions=True)
+			frappe.get_doc(
+				{
+					"doctype": "FWMS Zone",
+					"zone_name": zone_name,
+					"zone_type": zone_type,
+					"warehouse": warehouse,
+					"is_physical_only": 0 if has_warehouse else 1,
+					"barcode_prefix": zone_name.split()[0].upper()[:4],
+					"map_x": mx,
+					"map_y": my,
+					"map_w": mw,
+					"map_h": mh,
+					"color": color,
+				}
+			).insert(ignore_permissions=True)
 
 	# scrap warehouse for returns grading
 	scrap = f"Scrap - {abbr}"
 	if not frappe.db.exists("Warehouse", scrap):
-		frappe.get_doc({
-			"doctype": "Warehouse",
-			"warehouse_name": "Scrap",
-			"company": company_name,
-			"parent_warehouse": root,
-			"is_group": 0,
-		}).insert(ignore_permissions=True)
+		frappe.get_doc(
+			{
+				"doctype": "Warehouse",
+				"warehouse_name": "Scrap",
+				"company": company_name,
+				"parent_warehouse": root,
+				"is_group": 0,
+			}
+		).insert(ignore_permissions=True)
 
 
 def _setup_count_programs():
@@ -343,12 +429,14 @@ def _setup_count_programs():
 		("Class C - Semi-Annual", "C", 180),
 	):
 		if not frappe.db.exists("FWMS Count Program", name):
-			frappe.get_doc({
-				"doctype": "FWMS Count Program",
-				"program_name": name,
-				"abc_class": abc_class,
-				"interval_days": interval,
-				"count_method": "Blind",
-				"auto_generate": 1,
-				"enabled": 1,
-			}).insert(ignore_permissions=True)
+			frappe.get_doc(
+				{
+					"doctype": "FWMS Count Program",
+					"program_name": name,
+					"abc_class": abc_class,
+					"interval_days": interval,
+					"count_method": "Blind",
+					"auto_generate": 1,
+					"enabled": 1,
+				}
+			).insert(ignore_permissions=True)

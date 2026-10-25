@@ -35,7 +35,8 @@ class TestReceiving(FrappeTestCase):
 	def test_receive_batch_item_creates_pr_lpn_and_putaway_task(self):
 		po = self._open_po("COCOA-100", 12)
 		res = rf_receiving.commit_receipt(
-			po=po, lpn_barcode="TEST-LPN-RCV-1",
+			po=po,
+			lpn_barcode="TEST-LPN-RCV-1",
 			lines=[{"item_code": "COCOA-100", "qty": 12, "qc": "Pass", "batch_no": "TEST-BATCH-RCV"}],
 		)
 		self.assertTrue(res["purchase_receipt"])
@@ -58,7 +59,9 @@ class TestReceiving(FrappeTestCase):
 		self.assertIn(get_warehouse_for_type("Receiving Docks"), sle)
 
 		# putaway task queued
-		task = frappe.db.exists("FWMS Task", {"task_type": "Putaway", "lpn": "TEST-LPN-RCV-1", "status": "Open"})
+		task = frappe.db.exists(
+			"FWMS Task", {"task_type": "Putaway", "lpn": "TEST-LPN-RCV-1", "status": "Open"}
+		)
 		self.assertTrue(task)
 
 	def test_receive_qc_fail_routes_to_qc_hold(self):
@@ -67,7 +70,8 @@ class TestReceiving(FrappeTestCase):
 		self.addCleanup(frappe.db.set_value, "Item", "VALVE-08", "inspection_required_before_purchase", 0)
 		po = self._open_po("VALVE-08", 7)
 		res = rf_receiving.commit_receipt(
-			po=po, lpn_barcode=None,
+			po=po,
+			lpn_barcode=None,
 			lines=[{"item_code": "VALVE-08", "qty": 7, "qc": "Fail"}],
 		)
 		pr = frappe.get_doc("Purchase Receipt", res["purchase_receipt"])
@@ -79,7 +83,8 @@ class TestReceiving(FrappeTestCase):
 		po = self._open_po("BATT-20", 3)
 		serials = ["TEST-SN-BATT-001", "TEST-SN-BATT-002", "TEST-SN-BATT-003"]
 		res = rf_receiving.commit_receipt(
-			po=po, lpn_barcode=None,
+			po=po,
+			lpn_barcode=None,
 			lines=[{"item_code": "BATT-20", "qty": 3, "qc": "Pass", "serials": serials}],
 		)
 		pr = frappe.get_doc("Purchase Receipt", res["purchase_receipt"])
@@ -96,11 +101,14 @@ class TestReceiving(FrappeTestCase):
 	def test_putaway_moves_lpn_and_ledger(self):
 		po = self._open_po("STEEL-SHELF", 4)
 		res = rf_receiving.commit_receipt(
-			po=po, lpn_barcode="TEST-LPN-PUT-1",
+			po=po,
+			lpn_barcode="TEST-LPN-PUT-1",
 			lines=[{"item_code": "STEEL-SHELF", "qty": 4, "qc": "Pass"}],
 		)
 		lpn = res["lpn"]
-		task = frappe.db.get_value("FWMS Task", {"task_type": "Putaway", "lpn": lpn, "status": "Open"}, "name")
+		task = frappe.db.get_value(
+			"FWMS Task", {"task_type": "Putaway", "lpn": lpn, "status": "Open"}, "name"
+		)
 		sug = rf_putaway.suggest_bin(lpn)
 		out = rf_putaway.confirm(lpn=lpn, bin_name=sug["bin"], task=task)
 

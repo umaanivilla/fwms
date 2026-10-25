@@ -23,15 +23,17 @@ def po_info(po: str) -> dict:
 		pending = flt(row.stock_qty) - flt(row.received_qty)
 		if pending <= 0:
 			continue
-		items.append({
-			"item_code": row.item_code,
-			"item_name": row.item_name,
-			"pending_qty": pending,
-			"uom": row.stock_uom,
-			"name": row.name,
-			"has_batch_no": bool(frappe.get_cached_value("Item", row.item_code, "has_batch_no")),
-			"has_serial_no": bool(frappe.get_cached_value("Item", row.item_code, "has_serial_no")),
-		})
+		items.append(
+			{
+				"item_code": row.item_code,
+				"item_name": row.item_name,
+				"pending_qty": pending,
+				"uom": row.stock_uom,
+				"name": row.name,
+				"has_batch_no": bool(frappe.get_cached_value("Item", row.item_code, "has_batch_no")),
+				"has_serial_no": bool(frappe.get_cached_value("Item", row.item_code, "has_serial_no")),
+			}
+		)
 	return {
 		"po": po,
 		"supplier": po_doc.supplier,
@@ -135,23 +137,30 @@ def commit_receipt(po: str, lpn_barcode: str | None, lines: list[dict]) -> dict:
 	lpn.source_name = pr.name
 	lpn.purchase_order = po
 
-	for line, row in zip(lines, pr.items):
+	for line, row in zip(lines, pr.items, strict=False):
 		qty = flt(line.get("qty"))
 		if qty <= 0 or line.get("qc") == "Fail":
 			continue
 		existing = next(
-			(r for r in lpn.items if r.item == line["item_code"] and (r.batch_no or None) == (row.batch_no or None)),
+			(
+				r
+				for r in lpn.items
+				if r.item == line["item_code"] and (r.batch_no or None) == (row.batch_no or None)
+			),
 			None,
 		)
 		if existing:
 			existing.qty = flt(existing.qty) + qty
 		else:
-			lpn.append("items", {
-				"item": line["item_code"],
-				"qty": qty,
-				"batch_no": row.batch_no,
-				"uom": frappe.get_cached_value("Item", line["item_code"], "stock_uom"),
-			})
+			lpn.append(
+				"items",
+				{
+					"item": line["item_code"],
+					"qty": qty,
+					"batch_no": row.batch_no,
+					"uom": frappe.get_cached_value("Item", line["item_code"], "stock_uom"),
+				},
+			)
 	lpn.save(ignore_permissions=True)
 	pr.fwms_lpn = lpn.name
 	pr.save(ignore_permissions=True)
@@ -163,8 +172,12 @@ def commit_receipt(po: str, lpn_barcode: str | None, lines: list[dict]) -> dict:
 		if flt(line.get("qty")) <= 0:
 			continue
 		if frappe.get_cached_value("Item", line["item_code"], "inspection_required_before_purchase"):
-			_make_qi(pr, line["item_code"], flt(line["qty"]),
-				status="Rejected" if line.get("qc") == "Fail" else "Accepted")
+			_make_qi(
+				pr,
+				line["item_code"],
+				flt(line["qty"]),
+				status="Rejected" if line.get("qc") == "Fail" else "Accepted",
+			)
 			needs_reload = True
 
 	if needs_reload:
@@ -177,11 +190,13 @@ def commit_receipt(po: str, lpn_barcode: str | None, lines: list[dict]) -> dict:
 		qty=sum(flt(r.qty) for r in lpn.items),
 		lpn=lpn.name,
 		priority="1-High",
-		references=[{
-			"reference_doctype": "Purchase Receipt",
-			"reference_name": pr.name,
-			"note": "putaway from receiving",
-		}],
+		references=[
+			{
+				"reference_doctype": "Purchase Receipt",
+				"reference_name": pr.name,
+				"note": "putaway from receiving",
+			}
+		],
 	)
 
 	# QC-hold tote for failed lines + a Quality task to inspect it
@@ -199,22 +214,27 @@ def commit_receipt(po: str, lpn_barcode: str | None, lines: list[dict]) -> dict:
 			qc_lpn.source_name = pr.name
 			qc_lpn.purchase_order = po
 			for line in fail_lines:
-				qc_lpn.append("items", {
-					"item": line["item_code"],
-					"qty": flt(line["qty"]),
-					"batch_no": getattr(pr_rows.get(line["item_code"]), "batch_no", None) or None,
-				})
+				qc_lpn.append(
+					"items",
+					{
+						"item": line["item_code"],
+						"qty": flt(line["qty"]),
+						"batch_no": getattr(pr_rows.get(line["item_code"]), "batch_no", None) or None,
+					},
+				)
 			qc_lpn.insert(ignore_permissions=True)
 		create_task(
 			"Quality",
 			qty=sum(flt(l["qty"]) for l in fail_lines),
 			lpn=qc_lpn_barcode,
 			priority="2-Normal",
-			references=[{
-				"reference_doctype": "Purchase Receipt",
-				"reference_name": pr.name,
-				"note": "QC hold inspection",
-			}],
+			references=[
+				{
+					"reference_doctype": "Purchase Receipt",
+					"reference_name": pr.name,
+					"note": "QC hold inspection",
+				}
+			],
 		)
 
 	emit(
@@ -245,7 +265,7 @@ def next_serials(item_code: str, qty: int) -> dict:
 	max_n = 0
 	for name in existing:
 		try:
-			max_n = max(max_n, int(name[len(prefix):]))
+			max_n = max(max_n, int(name[len(prefix) :]))
 		except ValueError:
 			continue
 	serials = [f"{prefix}{n:05d}" for n in range(max_n + 1, max_n + 1 + qty)]
@@ -256,12 +276,14 @@ def _ensure_batch(item: str, batch_no: str) -> str:
 	"""RF may scan a batch that isn't in the system yet — create it."""
 	if not frappe.db.exists("Batch", batch_no):
 		expiry = frappe.get_cached_value("Item", item, "end_of_life")
-		frappe.get_doc({
-			"doctype": "Batch",
-			"batch_id": batch_no,
-			"item": item,
-			"expiry_date": expiry,
-		}).insert(ignore_permissions=True)
+		frappe.get_doc(
+			{
+				"doctype": "Batch",
+				"batch_id": batch_no,
+				"item": item,
+				"expiry_date": expiry,
+			}
+		).insert(ignore_permissions=True)
 	return batch_no
 
 
@@ -270,12 +292,14 @@ def _auto_batch(item: str, po: str) -> str:
 	batch_id = f"RCV-{po}-{item}"[:140]
 	if not frappe.db.exists("Batch", batch_id):
 		expiry = frappe.get_cached_value("Item", item, "end_of_life")
-		frappe.get_doc({
-			"doctype": "Batch",
-			"batch_id": batch_id,
-			"item": item,
-			"expiry_date": expiry,
-		}).insert(ignore_permissions=True)
+		frappe.get_doc(
+			{
+				"doctype": "Batch",
+				"batch_id": batch_id,
+				"item": item,
+				"expiry_date": expiry,
+			}
+		).insert(ignore_permissions=True)
 	return batch_id
 
 

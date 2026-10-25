@@ -1,11 +1,12 @@
 [project]
 name = "fwms"
 authors = [
-    { name = "Open Points", email = "dev@openpoints.example"}
+    { name = "Uma Anivilla", email = "openpnet@gmail.com"}
 ]
-description = "Frappe app for the FWMS project (Open Points)"
+description = "RF warehouse management system (LPN-centric WMS) for Frappe/ERPNext v16"
 requires-python = ">=3.14"
 readme = "README.md"
+license = "GPL-3.0"
 dynamic = ["version"]
 dependencies = [
     # "frappe~=16.0.0" # Installed and managed by bench.

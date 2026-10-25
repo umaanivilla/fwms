@@ -63,8 +63,7 @@ class TestWaveFEFO(FrappeTestCase):
 
 		# FEFO holds within the pick-face run
 		expiries = [
-			frappe.db.get_value("Batch", r.batch_no, "expiry_date")
-			for r in pick_face_rows if r.batch_no
+			frappe.db.get_value("Batch", r.batch_no, "expiry_date") for r in pick_face_rows if r.batch_no
 		]
 		self.assertEqual(expiries, sorted(expiries), "pick-face batches must be FEFO")
 

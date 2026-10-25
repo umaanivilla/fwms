@@ -19,14 +19,17 @@ class TestEndToEnd(FrappeTestCase):
 		frappe.set_user("w001@fwms.local")
 		po = self._po("JUICE-1L", 60)
 		res = rf_receiving.commit_receipt(
-			po=po, lpn_barcode="TEST-LPN-E2E",
+			po=po,
+			lpn_barcode="TEST-LPN-E2E",
 			lines=[{"item_code": "JUICE-1L", "qty": 60, "qc": "Pass", "batch_no": "TEST-BATCH-E2E"}],
 		)
 		lpn = res["lpn"]
 
 		# 2. putaway into a pick face
 		frappe.set_user("w002@fwms.local")
-		task = frappe.db.get_value("FWMS Task", {"task_type": "Putaway", "lpn": lpn, "status": "Open"}, "name")
+		task = frappe.db.get_value(
+			"FWMS Task", {"task_type": "Putaway", "lpn": lpn, "status": "Open"}, "name"
+		)
 		sug = rf_putaway.suggest_bin(lpn)
 		rf_putaway.confirm(lpn=lpn, bin_name=sug["bin"], task=task)
 
@@ -60,11 +63,14 @@ class TestEndToEnd(FrappeTestCase):
 		}
 		expiries = {b: frappe.db.get_value("Batch", b, "expiry_date") for b in available}
 		self.assertEqual(
-			expiries.get(detail["batch_no"]), min(expiries.values()),
+			expiries.get(detail["batch_no"]),
+			min(expiries.values()),
 			"must pick the nearest-expiry (FEFO) batch",
 		)
 		out = rf_picking.pick_confirm(
-			task=claimed["task"]["name"], qty=detail["qty"], cart="TEST-CART-E2E",
+			task=claimed["task"]["name"],
+			qty=detail["qty"],
+			cart="TEST-CART-E2E",
 		)
 		self.assertEqual(out["remaining"], 0)
 
