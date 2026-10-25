@@ -6,7 +6,7 @@ authors = [
 description = "RF warehouse management system (LPN-centric WMS) for Frappe/ERPNext v16"
 requires-python = ">=3.14"
 readme = "README.md"
-license = "GPL-3.0"
+license = "GPL-3.0-or-later"
 dynamic = ["version"]
 dependencies = [
     # "frappe~=16.0.0" # Installed and managed by bench.
