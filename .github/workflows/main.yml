@@ -74,13 +74,13 @@ jobs:
           bench set-config -g redis_socketio "redis://127.0.0.1:11000"
 
       - name: Install ERPNext and FWMS
-        working-directory: ~/frappe-bench
+        working-directory: /home/runner/frappe-bench
         run: |
           bench get-app erpnext https://github.com/frappe/erpnext --branch version-16 --skip-assets
           bench get-app fwms "$GITHUB_WORKSPACE" --skip-assets
 
       - name: Create test site
-        working-directory: ~/frappe-bench
+        working-directory: /home/runner/frappe-bench
         run: |
           bench new-site test_site \
             --mariadb-root-password root \
@@ -91,5 +91,5 @@ jobs:
           bench --site test_site set-config allow_tests true
 
       - name: Run tests
-        working-directory: ~/frappe-bench
+        working-directory: /home/runner/frappe-bench
         run: bench --site test_site run-tests --app fwms
