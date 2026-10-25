@@ -66,11 +66,12 @@ jobs:
       - name: Initialize bench
         run: |
           bench init ~/frappe-bench --frappe-branch version-16 --skip-assets
+          cd ~/frappe-bench
           bench config dns_multitenant off
-          bench config --working-directory ~/frappe-bench set-config db_host 127.0.0.1
-          bench config --working-directory ~/frappe-bench set-config redis_cache "redis://127.0.0.1:13000"
-          bench config --working-directory ~/frappe-bench set-config redis_queue "redis://127.0.0.1:11000"
-          bench config --working-directory ~/frappe-bench set-config redis_socketio "redis://127.0.0.1:11000"
+          bench set-config db_host 127.0.0.1
+          bench set-config redis_cache "redis://127.0.0.1:13000"
+          bench set-config redis_queue "redis://127.0.0.1:11000"
+          bench set-config redis_socketio "redis://127.0.0.1:11000"
 
       - name: Install ERPNext and FWMS
         working-directory: ~/frappe-bench
