@@ -59,7 +59,7 @@ jobs:
       - name: Install bench and prerequisites
         run: |
           sudo apt-get update
-          sudo apt-get install -y mariadb-client redis-tools
+          sudo apt-get install -y mariadb-client redis-server redis-tools
           pip install frappe-bench
           npm install -g yarn
 
