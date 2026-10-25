@@ -1,6 +1,7 @@
 # FWMS — Warehouse Management on Frappe / ERPNext v16
 
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
+[![CI](https://github.com/umaanivilla/fwms/actions/workflows/main.yml/badge.svg)](https://github.com/umaanivilla/fwms/actions/workflows/main.yml)
 
 FWMS turns warehouse floor operations into real ERPNext documents. RF-scan-driven
 flows (receiving, putaway, picking, packing, loading, counting, replenishment,
@@ -64,7 +65,7 @@ pushed to the floor view over websocket.
 
 ```bash
 bench get-app erpnext --branch version-16   # if not present
-bench get-app <this repo>                   # or clone into apps/fwms
+bench get-app https://github.com/umaanivilla/fwms
 bench --site yoursite install-app erpnext   # if not installed
 bench --site yoursite install-app fwms
 bench --site yoursite migrate               # doctypes, custom fields, print formats, roles, ERP permissions

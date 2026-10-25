@@ -7,7 +7,7 @@ fixes, docs, and the roadmap items below are all useful.
 
 ```bash
 # inside a Frappe v16 bench with ERPNext v16 installed
-bench get-app https://github.com/<you>/fwms      # or your fork
+bench get-app https://github.com/umaanivilla/fwms      # or your fork
 bench --site yoursite install-app fwms
 bench --site yoursite migrate
 bench --site yoursite execute fwms.setup.install.setup_company   # one-time bootstrap

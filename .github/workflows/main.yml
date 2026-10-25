@@ -1,0 +1,94 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  tests:
+    name: Server tests (Python ${{ matrix.python }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+
+    services:
+      mariadb:
+        image: mariadb:11.8
+        env:
+          MARIADB_ROOT_PASSWORD: root
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mariadb-admin ping -proot"
+          --health-interval=5s
+          --health-timeout=3s
+          --health-retries=10
+
+      redis-cache:
+        image: redis:7-alpine
+        ports:
+          - 13000:6379
+
+      redis-queue:
+        image: redis:7-alpine
+        ports:
+          - 11000:6379
+
+    steps:
+      - name: Clone
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.14'
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      - name: Add MariaDB/Redis config
+        run: |
+          mysql --host 127.0.0.1 --port 3306 -uroot -proot -e "
+            SET GLOBAL character_set_server = 'utf8mb4';
+            SET GLOBAL collation_server = 'utf8mb4_unicode_ci';
+          "
+
+      - name: Install bench and prerequisites
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y mariadb-client redis-tools
+          pip install frappe-bench
+          npm install -g yarn
+
+      - name: Initialize bench
+        run: |
+          bench init ~/frappe-bench --frappe-branch version-16 --skip-assets
+          bench config dns_multitenant off
+          bench config --working-directory ~/frappe-bench set-config db_host 127.0.0.1
+          bench config --working-directory ~/frappe-bench set-config redis_cache "redis://127.0.0.1:13000"
+          bench config --working-directory ~/frappe-bench set-config redis_queue "redis://127.0.0.1:11000"
+          bench config --working-directory ~/frappe-bench set-config redis_socketio "redis://127.0.0.1:11000"
+
+      - name: Install ERPNext and FWMS
+        working-directory: ~/frappe-bench
+        run: |
+          bench get-app erpnext https://github.com/frappe/erpnext --branch version-16 --skip-assets
+          bench get-app fwms "$GITHUB_WORKSPACE" --skip-assets
+
+      - name: Create test site
+        working-directory: ~/frappe-bench
+        run: |
+          bench new-site test_site \
+            --mariadb-root-password root \
+            --no-mariadb-socket \
+            --admin-password admin \
+            --install-app erpnext
+          bench --site test_site install-app fwms
+          bench --site test_site set-config allow_tests true
+
+      - name: Run tests
+        working-directory: ~/frappe-bench
+        run: bench --site test_site run-tests --app fwms
