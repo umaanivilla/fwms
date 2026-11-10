@@ -70,7 +70,10 @@ jobs:
 
       - name: Initialize bench
         run: |
-          bench init ~/frappe-bench --frappe-branch version-16 --skip-assets
+          # Pinned to the versions FWMS is developed and tested against —
+          # version-16 branch HEADs move daily and have already broken
+          # pick-list/QI behavior under us once. Bump deliberately.
+          bench init ~/frappe-bench --frappe-branch v16.36.1 --skip-assets
           cd ~/frappe-bench
           bench config dns_multitenant off
           bench set-config -g db_host 127.0.0.1
@@ -81,7 +84,7 @@ jobs:
       - name: Install ERPNext and FWMS
         working-directory: /home/runner/frappe-bench
         run: |
-          bench get-app erpnext https://github.com/frappe/erpnext --branch version-16 --skip-assets
+          bench get-app erpnext https://github.com/frappe/erpnext --branch v16.37.0 --skip-assets
           bench get-app fwms "$GITHUB_WORKSPACE" --skip-assets
 
       - name: Create test site
