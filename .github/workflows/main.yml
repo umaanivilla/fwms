@@ -44,6 +44,11 @@ jobs:
         with:
           python-version: '3.14'
 
+      - name: Guard Python version
+        run: |
+          python --version
+          python -c "import sys; assert sys.version_info[:2] == (3, 14), f'frappe version-16 requires exactly 3.14, got {sys.version}'"
+
       - name: Set up Node
         uses: actions/setup-node@v4
         with:

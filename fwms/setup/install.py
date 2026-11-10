@@ -152,12 +152,85 @@ SEED_TARIFFS = [
 ]
 
 
+def ensure_number_cards():
+	"""Public desk number cards for the warehouse KPI glance."""
+	import json
+
+	cards = [
+		("FWMS Open Tasks", "FWMS Task", [
+			["FWMS Task", "status", "in", ["Open", "Assigned", "In Progress"], False],
+		]),
+		("FWMS Pack Queue", "FWMS LPN", [
+			["FWMS LPN", "status", "=", "Packed", False],
+			["FWMS LPN", "lpn_type", "=", "Cart", False],
+		]),
+		("FWMS Events Today", "FWMS Event Log", [
+			["FWMS Event Log", "creation", "Timespan", "today", False],
+		]),
+	]
+	for label, dt, filters in cards:
+		if frappe.db.exists("Number Card", label):
+			continue
+		frappe.get_doc({
+			"doctype": "Number Card",
+			"label": label,
+			"type": "Document Type",
+			"document_type": dt,
+			"function": "Count",
+			"filters_json": json.dumps(filters),
+			"is_public": 1,
+		}).insert(ignore_permissions=True)
+
+
+def ensure_reports():
+	"""Query reports: task throughput + count accuracy, linked from the
+	FWMS workspace Analytics card."""
+	roles = [{"role": r} for r in ("FWMS Operator", "FWMS Supervisor", "FWMS Inventory Control", "System Manager")]
+
+	reports = {
+		"FWMS Task Throughput": ("""select
+	t.worker as 'Worker:Link/FWMS Worker:200',
+	w.person_name as 'Name:Data:180',
+	t.task_type as 'Task Type:Data:120',
+	count(t.name) as 'Completed:Int'
+from `tabFWMS Task` t
+left join `tabFWMS Worker` w on w.name = t.worker
+where t.status = 'Complete' and t.completed_at >= (now() - interval 7 day)
+group by t.worker, w.person_name, t.task_type
+order by count(t.name) desc""", "FWMS Task"),
+		"FWMS Count Accuracy": ("""select
+	b.name as 'Bin:Link/FWMS Bin:200',
+	b.zone as 'Zone:Link/FWMS Zone:160',
+	b.abc_class as 'ABC:Data:60',
+	b.last_counted_on as 'Last Counted:Date:120',
+	b.last_count_accuracy as 'Accuracy:Percent:110',
+	b.last_count_variance as 'Variance:Float:100'
+from `tabFWMS Bin` b
+where b.last_counted_on is not null
+order by b.last_count_accuracy asc""", "FWMS Bin"),
+	}
+	for name, (query, ref_dt) in reports.items():
+		if frappe.db.exists("Report", {"report_name": name}):
+			continue
+		frappe.get_doc({
+			"doctype": "Report",
+			"report_name": name,
+			"ref_doctype": ref_dt,
+			"report_type": "Query Report",
+			"is_standard": "No",
+			"query": query,
+			"roles": roles,
+		}).insert(ignore_permissions=True)
+
+
 def after_migrate():
 	ensure_roles()
 	ensure_erp_permissions()
 	ensure_custom_fields()
 	seed_tariffs()
 	default_settings()
+	ensure_number_cards()
+	ensure_reports()
 	ensure_scrap_zone()
 
 

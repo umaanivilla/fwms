@@ -24,7 +24,7 @@
   {
    "hidden": 0,
    "is_query_report": 0,
-   "label": "Waves \u0026 Pick Lists",
+   "label": "Waves & Pick Lists",
    "link_count": 0,
    "link_to": "FWMS Wave",
    "link_type": "DocType",
@@ -130,7 +130,7 @@
   {
    "hidden": 0,
    "is_query_report": 0,
-   "label": "Analytics \u0026 Audit",
+   "label": "Analytics & Audit",
    "link_count": 0,
    "onboard": 0,
    "type": "Card Break"
@@ -154,6 +154,28 @@
    "link_count": 0,
    "link_to": "FWMS KPI Snapshot",
    "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "dependencies": "",
+   "hidden": 0,
+   "is_query_report": 1,
+   "label": "Task Throughput",
+   "link_count": 0,
+   "link_to": "FWMS Task Throughput",
+   "link_type": "Report",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "dependencies": "",
+   "hidden": 0,
+   "is_query_report": 1,
+   "label": "Count Accuracy",
+   "link_count": 0,
+   "link_to": "FWMS Count Accuracy",
+   "link_type": "Report",
    "onboard": 0,
    "type": "Link"
   },

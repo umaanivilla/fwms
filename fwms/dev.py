@@ -439,3 +439,45 @@ def topup_bulk(item: str = "BATT-20", qty: int = 20):
 	add_contents(lpn_name, item, qty, batch_no=None)
 	frappe.db.commit()
 	return {"stock_entry": se.name, "lpn": lpn_name, "serials": len(serials) if serials else 0}
+
+
+def check_reports():
+	def fn():
+		from frappe.desk.query_report import run
+
+		out = {}
+		for name in ("FWMS Count Accuracy", "FWMS Task Throughput"):
+			try:
+				r = run(name, filters={})
+				res = r.get("result", []) if isinstance(r, dict) else []
+				out[name] = f"{len(res)} rows"
+			except Exception as exc:
+				import traceback
+
+				traceback.print_exc()
+				out[name] = f"FAIL {type(exc).__name__}: {str(exc)[:150]}"
+		return out
+
+	return _run(fn)
+
+
+def check_transport_formats():
+	def fn():
+		from frappe import get_print
+
+		cons = frappe.get_all("FWMS Consignment", pluck="name", limit=1)
+		if not cons:
+			return "no consignment record — create one first"
+		out = {}
+		for fmt in ("CMR (Road Consignment Note)", "House Bill of Lading (Ocean)", "House Air Waybill (Air)"):
+			try:
+				html = get_print("FWMS Consignment", cons[0], print_format=fmt, as_pdf=False)
+				out[fmt] = f"rendered {len(html)} chars"
+			except Exception as exc:
+				import traceback
+
+				traceback.print_exc()
+				out[fmt] = f"FAIL {type(exc).__name__}: {str(exc)[:120]}"
+		return out
+
+	return _run(fn)

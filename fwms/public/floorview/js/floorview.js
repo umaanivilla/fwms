@@ -1061,6 +1061,7 @@
 				? "orders held for release"
 				: "each order released on arrival";
 		if (D.shift) $("shiftname").textContent = `${D.shift.shift_name} shift`;
+		if (D.simulation_mode) $("btnSim").classList.remove("hidden");
 		// state bar
 		const workers = D.workers || [];
 		const busy = workers.filter((w) => (D.task_by_worker || {})[w.name]).length;
@@ -1232,6 +1233,9 @@
 	$("btnPlay").onclick = () => {
 		UI.playing = !UI.playing;
 		$("btnPlay").textContent = UI.playing ? "Pause" : "Play";
+	};
+	$("btnSim").onclick = async () => {
+		try { await api("fwms.api.floorview.simulate_tick"); } catch (e) { console.warn(e); }
 	};
 	$("btnTruck").onclick = async () => {
 		$("btnTruck").disabled = true;
